@@ -116,11 +116,20 @@ function findIsracardSections(rows: string[][]): IsracardSection[] {
       const sectionType = rowText.includes('שטרם נקלטו') ? 'pending' : 'charged';
 
       // Extract billing date from section header, e.g. "עסקאות למועד חיוב 02/03/2026"
+      // The billing date is when the charge hits the account, but the transactions
+      // belong to the PREVIOUS month's cashflow. E.g. billing on 02/03/2026 means
+      // these are February 2026 expenses, so we shift one month back.
       let billingDate: string | undefined;
       if (sectionType === 'charged') {
         const dateMatch = rowText.match(/למועד חיוב\s+(\d{1,2}[./]\d{1,2}[./]\d{2,4})/);
         if (dateMatch) {
-          try { billingDate = parseHebrewDate(dateMatch[1]); } catch { /* ignore */ }
+          try {
+            const rawDate = parseHebrewDate(dateMatch[1]); // e.g. "2026-03-02"
+            // Shift one month back: billing month's transactions belong to previous month
+            const d = new Date(rawDate);
+            d.setMonth(d.getMonth() - 1);
+            billingDate = d.toISOString().slice(0, 10); // e.g. "2026-02-02"
+          } catch { /* ignore */ }
         }
       }
 
