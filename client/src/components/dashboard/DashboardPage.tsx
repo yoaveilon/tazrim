@@ -78,7 +78,7 @@ export default function DashboardPage({ month }: Props) {
         {/* Balance card */}
         <div className="card !p-0 overflow-hidden">
           <div className="px-6 pt-5 pb-1">
-            <span className="text-xs font-semibold text-red-500 tracking-wide">יתרה נותרת</span>
+            <span className="text-xs font-semibold text-red-500 tracking-wide">נותר להוציא</span>
           </div>
           <div className="px-6 pb-2">
             <p className={`text-3xl sm:text-4xl font-bold ${remainingColor}`}>
