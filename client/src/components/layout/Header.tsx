@@ -10,32 +10,32 @@ export default function Header({ currentMonth, onMonthChange, onMenuToggle }: Pr
   return (
     <header className="px-4 sm:px-8 pt-6 pb-2">
       <div className="flex items-center justify-between">
-        {/* Title */}
-        <div className="text-center sm:text-right flex-1">
-          <div className="flex items-center justify-center sm:justify-end gap-2 sm:gap-3">
-            <button
-              onClick={() => onMonthChange(getNextMonth(currentMonth))}
-              className="p-1.5 hover:bg-white/80 rounded-xl transition-colors text-gray-400 hover:text-gray-600"
-              title="חודש הבא"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-              תזרים חודשי — {formatMonthHebrew(currentMonth)}
-            </h1>
-            <button
-              onClick={() => onMonthChange(getPrevMonth(currentMonth))}
-              className="p-1.5 hover:bg-white/80 rounded-xl transition-colors text-gray-400 hover:text-gray-600"
-              title="חודש קודם"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
-          <p className="text-sm text-gray-400 mt-0.5 hidden sm:block">ניהול פיננסי מקצועי וניתוח תזרים מזומנים</p>
+        {/* Spacer for balance on desktop */}
+        <div className="hidden lg:block" />
+
+        {/* Month navigation - right aligned */}
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => onMonthChange(getPrevMonth(currentMonth))}
+            className="p-1 hover:bg-white/80 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
+            title="חודש קודם"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+          <span className="text-sm font-semibold text-gray-700 min-w-[100px] text-center">
+            {formatMonthHebrew(currentMonth)}
+          </span>
+          <button
+            onClick={() => onMonthChange(getNextMonth(currentMonth))}
+            className="p-1 hover:bg-white/80 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
+            title="חודש הבא"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
         </div>
 
         {/* Hamburger menu button - mobile only */}
