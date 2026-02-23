@@ -119,7 +119,7 @@ export function reclassifyAll(month?: string, userId?: number): { updated: numbe
   }
 
   if (month) {
-    conditions.push("strftime('%Y-%m', date) = ?");
+    conditions.push("strftime('%Y-%m', COALESCE(processed_date, date)) = ?");
     params.push(month);
   }
 

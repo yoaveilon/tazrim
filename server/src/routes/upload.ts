@@ -58,6 +58,15 @@ router.post('/import', (req: Request, res: Response, next: NextFunction) => {
       )
     `);
 
+    // Update processed_date for existing duplicates (when re-uploading with billing date)
+    const updateProcessedDateStmt = db.prepare(`
+      UPDATE transactions
+      SET processed_date = ?
+      WHERE date = ? AND description = ? AND charged_amount = ?
+        AND (card_last_four = ? OR (card_last_four IS NULL AND ? IS NULL))
+        AND (processed_date IS NULL OR processed_date = '')
+    `);
+
     let imported = 0;
     let skipped = 0;
     let failed = 0;
@@ -91,6 +100,17 @@ router.post('/import', (req: Request, res: Response, next: NextFunction) => {
             }
           } else {
             skipped++; // Duplicate
+            // Update processed_date on existing duplicate if we have one now
+            if (txn.processed_date) {
+              updateProcessedDateStmt.run(
+                txn.processed_date,
+                txn.date,
+                txn.description,
+                txn.charged_amount,
+                txn.card_last_four || null,
+                txn.card_last_four || null
+              );
+            }
           }
         } catch {
           failed++;

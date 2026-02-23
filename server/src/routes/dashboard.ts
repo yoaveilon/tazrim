@@ -17,7 +17,7 @@ router.get('/summary', (req: Request, res: Response) => {
       SUM(ABS(t.charged_amount)) as amount
     FROM transactions t
     JOIN categories c ON t.category_id = c.id
-    WHERE strftime('%Y-%m', t.date) = ?
+    WHERE strftime('%Y-%m', COALESCE(t.processed_date, t.date)) = ?
       AND t.charged_amount > 0
       AND c.is_expense = 1
       AND t.user_id = ?
@@ -39,7 +39,7 @@ router.get('/summary', (req: Request, res: Response) => {
   const variableIncomeRow = db.prepare(`
     SELECT COALESCE(SUM(ABS(charged_amount)), 0) as total
     FROM transactions
-    WHERE strftime('%Y-%m', date) = ?
+    WHERE strftime('%Y-%m', COALESCE(processed_date, date)) = ?
       AND charged_amount < 0
       AND user_id = ?
   `).get(month, userId) as any;
@@ -103,7 +103,7 @@ router.get('/cashflow', (req: Request, res: Response) => {
   const variableIncomeRow = db.prepare(`
     SELECT COALESCE(SUM(ABS(charged_amount)), 0) as total
     FROM transactions
-    WHERE strftime('%Y-%m', date) = ?
+    WHERE strftime('%Y-%m', COALESCE(processed_date, date)) = ?
       AND charged_amount < 0
       AND user_id = ?
   `).get(month, userId) as any;
@@ -119,13 +119,13 @@ router.get('/cashflow', (req: Request, res: Response) => {
     SELECT
       c.id as category_id, c.name, c.icon, c.color,
       SUM(t.charged_amount) as total,
-      COUNT(DISTINCT strftime('%Y-%m', t.date)) as months_count
+      COUNT(DISTINCT strftime('%Y-%m', COALESCE(t.processed_date, t.date))) as months_count
     FROM transactions t
     JOIN categories c ON t.category_id = c.id
     WHERE t.user_id = ?
       AND t.charged_amount > 0
       AND c.is_expense = 1
-      AND strftime('%Y-%m', t.date) < ?
+      AND strftime('%Y-%m', COALESCE(t.processed_date, t.date)) < ?
     GROUP BY c.id
   `).all(userId, month) as any[];
 
@@ -172,7 +172,7 @@ router.get('/cashflow', (req: Request, res: Response) => {
     WHERE t.user_id = ?
       AND t.charged_amount > 0
       AND c.is_expense = 1
-      AND strftime('%Y-%m', t.date) = ?
+      AND strftime('%Y-%m', COALESCE(t.processed_date, t.date)) = ?
     GROUP BY c.id
   `).all(userId, month) as any[];
 
@@ -335,9 +335,9 @@ router.get('/weekly', (req: Request, res: Response) => {
   // --- Historical weekly averages ---
   // Get ALL historical months and their daily expenses, then compute average per-week-position
   const historicalMonths = db.prepare(`
-    SELECT DISTINCT strftime('%Y-%m', date) as month
+    SELECT DISTINCT strftime('%Y-%m', COALESCE(processed_date, date)) as month
     FROM transactions
-    WHERE user_id = ? AND charged_amount > 0 AND strftime('%Y-%m', date) < ?
+    WHERE user_id = ? AND charged_amount > 0 AND strftime('%Y-%m', COALESCE(processed_date, date)) < ?
     ORDER BY month
   `).all(userId, month) as any[];
 
@@ -350,7 +350,7 @@ router.get('/weekly', (req: Request, res: Response) => {
       SELECT COALESCE(SUM(charged_amount), 0) as total
       FROM transactions
       WHERE user_id = ? AND charged_amount > 0
-        AND date >= ? AND date <= ?
+        AND COALESCE(processed_date, date) >= ? AND COALESCE(processed_date, date) <= ?
     `).get(userId, week.startDate, week.endDate) as any;
 
     // Historical average for same day-range across past months
@@ -360,9 +360,9 @@ router.get('/weekly', (req: Request, res: Response) => {
         SELECT COALESCE(SUM(charged_amount), 0) as total
         FROM transactions
         WHERE user_id = ? AND charged_amount > 0
-          AND strftime('%Y-%m', date) < ?
-          AND CAST(strftime('%d', date) AS INTEGER) >= ?
-          AND CAST(strftime('%d', date) AS INTEGER) <= ?
+          AND strftime('%Y-%m', COALESCE(processed_date, date)) < ?
+          AND CAST(strftime('%d', COALESCE(processed_date, date)) AS INTEGER) >= ?
+          AND CAST(strftime('%d', COALESCE(processed_date, date)) AS INTEGER) <= ?
       `).get(userId, month, week.startDay, week.endDay) as any;
       forecast = Math.round(histRow.total / numHistMonths);
     }
@@ -397,7 +397,7 @@ router.get('/forecast', (req: Request, res: Response) => {
   const forecastVarIncomeRow = db.prepare(`
     SELECT COALESCE(SUM(ABS(charged_amount)), 0) as total
     FROM transactions
-    WHERE strftime('%Y-%m', date) = ?
+    WHERE strftime('%Y-%m', COALESCE(processed_date, date)) = ?
       AND charged_amount < 0
       AND user_id = ?
   `).get(month, userId) as any;
@@ -417,7 +417,7 @@ router.get('/forecast', (req: Request, res: Response) => {
   const actualExpRow = db.prepare(`
     SELECT COALESCE(SUM(charged_amount), 0) as total
     FROM transactions
-    WHERE strftime('%Y-%m', date) = ?
+    WHERE strftime('%Y-%m', COALESCE(processed_date, date)) = ?
       AND charged_amount > 0
       AND user_id = ?
   `).get(month, userId) as any;
@@ -457,12 +457,12 @@ router.get('/trends', (req: Request, res: Response) => {
 
   // Get expenses per month
   const expenses = db.prepare(`
-    SELECT strftime('%Y-%m', date) as month, SUM(charged_amount) as total
+    SELECT strftime('%Y-%m', COALESCE(processed_date, date)) as month, SUM(charged_amount) as total
     FROM transactions
-    WHERE strftime('%Y-%m', date) >= ?
+    WHERE strftime('%Y-%m', COALESCE(processed_date, date)) >= ?
       AND charged_amount > 0
       AND user_id = ?
-    GROUP BY strftime('%Y-%m', date)
+    GROUP BY strftime('%Y-%m', COALESCE(processed_date, date))
     ORDER BY month
   `).all(startMonth, userId) as any[];
 
@@ -478,12 +478,12 @@ router.get('/trends', (req: Request, res: Response) => {
 
   // Variable income per month (credit card refunds)
   const variableIncomeByMonth = db.prepare(`
-    SELECT strftime('%Y-%m', date) as month, SUM(ABS(charged_amount)) as total
+    SELECT strftime('%Y-%m', COALESCE(processed_date, date)) as month, SUM(ABS(charged_amount)) as total
     FROM transactions
-    WHERE strftime('%Y-%m', date) >= ?
+    WHERE strftime('%Y-%m', COALESCE(processed_date, date)) >= ?
       AND charged_amount < 0
       AND user_id = ?
-    GROUP BY strftime('%Y-%m', date)
+    GROUP BY strftime('%Y-%m', COALESCE(processed_date, date))
   `).all(startMonth, userId) as any[];
 
   const expenseMap = new Map(expenses.map((e: any) => [e.month, e.total]));

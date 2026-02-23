@@ -21,7 +21,7 @@ router.get('/', (req: Request, res: Response) => {
   const params: any[] = [userId];
 
   if (month) {
-    conditions.push("strftime('%Y-%m', t.date) = ?");
+    conditions.push("strftime('%Y-%m', COALESCE(t.processed_date, t.date)) = ?");
     params.push(month);
   }
   if (category_id) {
@@ -137,7 +137,7 @@ router.get('/unclassified', (req: Request, res: Response) => {
   const params: any[] = [userId];
 
   if (month) {
-    conditions.push("strftime('%Y-%m', t.date) = ?");
+    conditions.push("strftime('%Y-%m', COALESCE(t.processed_date, t.date)) = ?");
     params.push(month);
   }
 

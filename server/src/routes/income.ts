@@ -158,10 +158,10 @@ router.get('/variable', (req: Request, res: Response) => {
       c.name as category_name, c.icon as category_icon, c.color as category_color
     FROM transactions t
     LEFT JOIN categories c ON t.category_id = c.id
-    WHERE strftime('%Y-%m', t.date) = ?
+    WHERE strftime('%Y-%m', COALESCE(t.processed_date, t.date)) = ?
       AND t.charged_amount < 0
       AND t.user_id = ?
-    ORDER BY t.date DESC
+    ORDER BY COALESCE(t.processed_date, t.date) DESC
   `).all(month, userId) as any[];
 
   // Calculate total (make it positive for display)

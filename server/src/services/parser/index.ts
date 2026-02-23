@@ -78,7 +78,7 @@ function parseIsracardFile(rows: string[][], filename: string): ParseResult {
       const rowIndex = section.dataRowIndices[i];
 
       try {
-        const txn = mapIsracardRow(row, mapping, isPending, cardLastFour);
+        const txn = mapIsracardRow(row, mapping, isPending, cardLastFour, section.billingDate);
         if (txn) parsed.push(txn);
       } catch (err: any) {
         errors.push(`שורה ${rowIndex + 1}: ${err.message}`);
@@ -98,6 +98,7 @@ function parseIsracardFile(rows: string[][], filename: string): ParseResult {
 
 interface IsracardSection {
   type: 'pending' | 'charged';
+  billingDate?: string; // Billing date extracted from section header (YYYY-MM-DD)
   headers: string[];
   dataRows: string[][];
   dataRowIndices: number[];
@@ -113,6 +114,15 @@ function findIsracardSections(rows: string[][]): IsracardSection[] {
     // Check for section header text
     if (rowText.includes('עסקאות שטרם נקלטו') || rowText.includes('עסקאות למועד חיוב')) {
       const sectionType = rowText.includes('שטרם נקלטו') ? 'pending' : 'charged';
+
+      // Extract billing date from section header, e.g. "עסקאות למועד חיוב 02/03/2026"
+      let billingDate: string | undefined;
+      if (sectionType === 'charged') {
+        const dateMatch = rowText.match(/למועד חיוב\s+(\d{1,2}[./]\d{1,2}[./]\d{2,4})/);
+        if (dateMatch) {
+          try { billingDate = parseHebrewDate(dateMatch[1]); } catch { /* ignore */ }
+        }
+      }
 
       // Next non-empty row should be the column header row
       let headerRowIdx = i + 1;
@@ -155,6 +165,7 @@ function findIsracardSections(rows: string[][]): IsracardSection[] {
 
         sections.push({
           type: sectionType,
+          billingDate,
           headers,
           dataRows,
           dataRowIndices,
@@ -180,7 +191,8 @@ function mapIsracardRow(
   row: string[],
   mapping: ColumnMapping,
   isPending: boolean,
-  cardLastFour?: string
+  cardLastFour?: string,
+  billingDate?: string
 ): ParsedTransaction | null {
   const get = (field: string): string => {
     const idx = mapping[field];
@@ -237,7 +249,7 @@ function mapIsracardRow(
 
   return {
     date,
-    processed_date: undefined,
+    processed_date: billingDate || undefined,
     description: description.trim(),
     original_amount: originalAmount,
     original_currency: currency,

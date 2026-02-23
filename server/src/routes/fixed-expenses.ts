@@ -99,7 +99,7 @@ router.post('/auto-detect', (req: Request, res: Response) => {
   const transactions = db.prepare(`
     SELECT id, description, charged_amount, date
     FROM transactions
-    WHERE user_id = ? AND strftime('%Y-%m', date) = ? AND charged_amount > 0
+    WHERE user_id = ? AND strftime('%Y-%m', COALESCE(processed_date, date)) = ? AND charged_amount > 0
   `).all(userId, month) as any[];
 
   // Already paid this month
