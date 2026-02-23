@@ -79,7 +79,7 @@ router.patch('/:id', (req: Request, res: Response) => {
 router.delete('/:id', (req: Request, res: Response) => {
   const db = getDb();
   const userId = req.user!.id;
-  const categoryId = parseInt(req.params.id);
+  const categoryId = parseInt(req.params.id as string);
   const reassignTo = req.query.reassign_to ? parseInt(req.query.reassign_to as string) : null;
 
   const deleteOp = db.transaction(() => {

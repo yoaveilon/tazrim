@@ -486,7 +486,7 @@ router.get('/forecast-overrides', (req: Request, res: Response) => {
 router.put('/forecast-overrides/:categoryId', (req: Request, res: Response) => {
   const db = getDb();
   const userId = req.user!.id;
-  const categoryId = parseInt(req.params.categoryId);
+  const categoryId = parseInt(req.params.categoryId as string);
   const { monthly_budget } = req.body;
 
   if (monthly_budget === undefined || monthly_budget === null) {

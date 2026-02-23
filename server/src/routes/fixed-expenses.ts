@@ -172,7 +172,7 @@ router.get('/payments', (req: Request, res: Response) => {
 router.post('/:id/pay', (req: Request, res: Response) => {
   const db = getDb();
   const userId = req.user!.id;
-  const fixedExpenseId = parseInt(req.params.id);
+  const fixedExpenseId = parseInt(req.params.id as string);
   const { month, amount_paid } = req.body;
 
   if (!month) {
@@ -213,7 +213,7 @@ router.post('/:id/pay', (req: Request, res: Response) => {
 router.delete('/:id/pay', (req: Request, res: Response) => {
   const db = getDb();
   const userId = req.user!.id;
-  const fixedExpenseId = parseInt(req.params.id);
+  const fixedExpenseId = parseInt(req.params.id as string);
   const month = req.query.month as string;
 
   if (!month) {
