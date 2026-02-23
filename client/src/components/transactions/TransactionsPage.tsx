@@ -174,18 +174,18 @@ export default function TransactionsPage({ month }: Props) {
       <h2 className="text-2xl font-bold mb-6">עסקאות</h2>
 
       {/* Filters */}
-      <div className="card mb-4 flex gap-4 flex-wrap">
+      <div className="card mb-4 flex gap-3 flex-col sm:flex-row">
         <input
           type="text"
           placeholder="חיפוש בית עסק..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="input max-w-xs"
+          className="input sm:max-w-xs"
         />
         <select
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.target.value)}
-          className="input max-w-[200px]"
+          className="input sm:max-w-[200px]"
         >
           <option value="">כל הקטגוריות</option>
           {expenseCategories.map((c: Category) => (
@@ -194,8 +194,8 @@ export default function TransactionsPage({ month }: Props) {
         </select>
       </div>
 
-      {/* Table */}
-      <div className="card overflow-x-auto">
+      {/* Desktop Table */}
+      <div className="card hidden sm:block overflow-x-auto">
         {isLoading ? (
           <div className="text-center py-12 text-gray-500">טוען...</div>
         ) : !txnData?.data?.length ? (
@@ -282,6 +282,77 @@ export default function TransactionsPage({ month }: Props) {
           <div className="text-sm text-gray-500 mt-3 pt-3 border-t">
             מציג {txnData.data.length} מתוך {txnData.total} עסקאות
           </div>
+        )}
+      </div>
+
+      {/* Mobile Cards */}
+      <div className="sm:hidden space-y-3">
+        {isLoading ? (
+          <div className="card text-center py-12 text-gray-500">טוען...</div>
+        ) : !txnData?.data?.length ? (
+          <div className="card text-center py-12 text-gray-500">
+            <div className="text-4xl mb-3">🧾</div>
+            <p>אין עסקאות להצגה</p>
+          </div>
+        ) : (
+          <>
+            {txnData.data.map((txn: Transaction) => (
+              <div key={txn.id} className="card !p-4">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{txn.description}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{formatDateHebrew(txn.date)}</p>
+                  </div>
+                  <p className="font-mono font-bold text-sm mr-3">{formatNIS(txn.charged_amount)}</p>
+                </div>
+                <div className="flex items-center justify-between">
+                  {editingId === txn.id ? (
+                    <select
+                      autoFocus
+                      className="input py-1 text-sm flex-1"
+                      defaultValue={txn.category_id || ''}
+                      onChange={(e) => {
+                        updateMutation.mutate({
+                          id: txn.id,
+                          category_id: parseInt(e.target.value),
+                        });
+                      }}
+                      onBlur={() => setEditingId(null)}
+                    >
+                      <option value="">ללא קטגוריה</option>
+                      {expenseCategories.map((c: Category) => (
+                        <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <button
+                      onClick={() => setEditingId(txn.id)}
+                      className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium hover:opacity-80 transition-opacity"
+                      style={{
+                        backgroundColor: txn.category_color ? `${txn.category_color}20` : '#f3f4f6',
+                        color: txn.category_color || '#6b7280',
+                      }}
+                    >
+                      {txn.category_icon && <span>{txn.category_icon}</span>}
+                      {txn.category_name || 'לא מסווג'}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => openFixedModal(txn)}
+                    className="text-gray-400 hover:text-blue-600 p-1"
+                    title="סמן כהוצאה קבועה"
+                  >
+                    📌
+                  </button>
+                </div>
+              </div>
+            ))}
+            {txnData.total > 0 && (
+              <p className="text-sm text-gray-500 text-center">
+                מציג {txnData.data.length} מתוך {txnData.total} עסקאות
+              </p>
+            )}
+          </>
         )}
       </div>
 

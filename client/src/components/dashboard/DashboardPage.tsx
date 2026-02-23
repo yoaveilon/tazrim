@@ -63,16 +63,16 @@ export default function DashboardPage({ month }: Props) {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-6">תזרים חודשי — {formatMonthHebrew(month)}</h2>
+      <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">תזרים חודשי — {formatMonthHebrew(month)}</h2>
 
       {/* Top summary: 4 cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="card cursor-pointer hover:shadow-md transition-shadow" onClick={() => setIncomeOpen(!incomeOpen)}>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+        <div className="card !p-4 sm:!p-6 cursor-pointer hover:shadow-md transition-shadow" onClick={() => setIncomeOpen(!incomeOpen)}>
           <div className="flex items-center justify-between">
             <p className="text-xs text-gray-500 mb-1">הכנסות צפויות</p>
             <span className={`text-xs text-gray-400 transition-transform duration-200 ${incomeOpen ? 'rotate-180' : ''}`}>▾</span>
           </div>
-          <p className="text-xl font-bold text-green-600">
+          <p className="text-lg sm:text-xl font-bold text-green-600">
             {formatNIS(cashflow?.expectedIncome || 0)}
           </p>
           {cashflow && cashflow.actualIncome > 0 && (
@@ -81,21 +81,21 @@ export default function DashboardPage({ month }: Props) {
             </p>
           )}
         </div>
-        <div className="card">
+        <div className="card !p-4 sm:!p-6">
           <p className="text-xs text-gray-500 mb-1">הוצאות צפויות</p>
-          <p className="text-xl font-bold text-orange-500">
+          <p className="text-lg sm:text-xl font-bold text-orange-500">
             {formatNIS(cashflow?.totalForecastExpenses || 0)}
           </p>
         </div>
-        <div className="card">
+        <div className="card !p-4 sm:!p-6">
           <p className="text-xs text-gray-500 mb-1">הוצאות בפועל</p>
-          <p className="text-xl font-bold text-red-600">
+          <p className="text-lg sm:text-xl font-bold text-red-600">
             {formatNIS(cashflow?.totalActualExpenses || 0)}
           </p>
         </div>
-        <div className={`card border ${remainingBg}`}>
+        <div className={`card !p-4 sm:!p-6 border ${remainingBg}`}>
           <p className="text-xs text-gray-500 mb-1">נותר להוציא</p>
-          <p className={`text-xl font-bold ${remainingColor}`}>
+          <p className={`text-lg sm:text-xl font-bold ${remainingColor}`}>
             {formatNIS(remaining)}
           </p>
         </div>
