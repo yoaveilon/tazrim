@@ -3,10 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
   getIncomeSources, createIncome, deleteIncome,
-  getIncomeRecords, updateIncomeRecord,
+  getIncomeRecords, updateIncomeRecord, getVariableIncome,
 } from '../../services/api';
 import { formatNIS } from '../../utils/currency';
-import type { IncomeSource, IncomeRecord } from 'shared/src/types';
+import type { IncomeSource, IncomeRecord, VariableIncomeItem } from 'shared/src/types';
 
 interface Props {
   month: string;
@@ -27,6 +27,11 @@ export default function IncomePage({ month }: Props) {
   const { data: records } = useQuery({
     queryKey: ['income-records', month],
     queryFn: () => getIncomeRecords(month),
+  });
+
+  const { data: variableIncome } = useQuery({
+    queryKey: ['variable-income', month],
+    queryFn: () => getVariableIncome(month),
   });
 
   const createMutation = useMutation({
@@ -157,7 +162,7 @@ export default function IncomePage({ month }: Props) {
 
       {/* Monthly records */}
       {records && records.length > 0 && (
-        <div className="card">
+        <div className="card mb-6">
           <h3 className="font-semibold mb-4">סטטוס חודשי</h3>
           <div className="space-y-3">
             {records.map((r: IncomeRecord) => (
@@ -191,6 +196,47 @@ export default function IncomePage({ month }: Props) {
           </div>
         </div>
       )}
+
+      {/* Variable Income - Credit Card Refunds */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold">הכנסות משתנות</h3>
+          {variableIncome && variableIncome.total > 0 && (
+            <span className="text-sm font-mono text-emerald-600 font-medium">
+              סה״כ: {formatNIS(variableIncome.total)}
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-gray-400 mb-4">זיכויים והחזרים בכרטיסי אשראי (עסקאות בסכום שלילי)</p>
+        {!variableIncome?.refunds?.length ? (
+          <p className="text-gray-500 text-center py-4">אין זיכויים או החזרים בחודש זה</p>
+        ) : (
+          <div className="space-y-2">
+            {variableIncome.refunds.map((item: VariableIncomeItem) => (
+              <div key={item.id} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{item.description}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs text-gray-400">{new Date(item.date).toLocaleDateString('he-IL')}</span>
+                    {item.category_name && (
+                      <span className="text-xs px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                        {item.category_icon && <span className="ml-1">{item.category_icon}</span>}
+                        {item.category_name}
+                      </span>
+                    )}
+                    {item.card_last_four && (
+                      <span className="text-xs text-gray-400">••{item.card_last_four}</span>
+                    )}
+                  </div>
+                </div>
+                <span className="font-mono text-emerald-600 font-medium text-sm mr-3">
+                  +{formatNIS(item.amount)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

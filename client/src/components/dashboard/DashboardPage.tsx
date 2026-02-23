@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { getCashFlow, setForecastOverride, getIncomeRecords, updateIncomeRecord } from '../../services/api';
+import { getCashFlow, setForecastOverride, getIncomeRecords, updateIncomeRecord, getVariableIncome } from '../../services/api';
 import { formatNIS } from '../../utils/currency';
 import { formatMonthHebrew } from '../../utils/date';
 import type { CategoryForecast, IncomeRecord } from 'shared/src/types';
@@ -23,6 +23,11 @@ export default function DashboardPage({ month }: Props) {
   const { data: incomeRecords } = useQuery({
     queryKey: ['income-records', month],
     queryFn: () => getIncomeRecords(month),
+  });
+
+  const { data: variableIncome } = useQuery({
+    queryKey: ['variable-income', month],
+    queryFn: () => getVariableIncome(month),
   });
 
   const queryClient = useQueryClient();
@@ -102,84 +107,109 @@ export default function DashboardPage({ month }: Props) {
       </div>
 
       {/* Income details panel */}
-      {incomeOpen && incomeRecords && incomeRecords.length > 0 && (
+      {incomeOpen && (
         <div className="card mb-6">
-          <h3 className="font-semibold mb-3">פירוט הכנסות — {formatMonthHebrew(month)}</h3>
-          <div className="space-y-2">
-            {incomeRecords.map((r: IncomeRecord) => (
-              <div key={r.id} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm">{r.source_name}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  {editingIncomeId === r.id ? (
-                    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="number"
-                        value={editingIncomeValue}
-                        onChange={(e) => setEditingIncomeValue(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
+          {/* Fixed income section */}
+          <h3 className="font-semibold mb-3">הכנסות קבועות — {formatMonthHebrew(month)}</h3>
+          {incomeRecords && incomeRecords.length > 0 ? (
+            <div className="space-y-2">
+              {incomeRecords.map((r: IncomeRecord) => (
+                <div key={r.id} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm">{r.source_name}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {editingIncomeId === r.id ? (
+                      <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="number"
+                          value={editingIncomeValue}
+                          onChange={(e) => setEditingIncomeValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              const val = parseFloat(editingIncomeValue);
+                              if (!isNaN(val) && val > 0) {
+                                incomeMutation.mutate({ id: r.id, expected_amount: val });
+                              }
+                            }
+                            if (e.key === 'Escape') setEditingIncomeId(null);
+                          }}
+                          autoFocus
+                          className="w-24 px-2 py-1 border border-green-300 rounded text-sm font-mono focus:outline-none focus:ring-1 focus:ring-green-400 text-left"
+                        />
+                        <button
+                          onClick={() => {
                             const val = parseFloat(editingIncomeValue);
                             if (!isNaN(val) && val > 0) {
                               incomeMutation.mutate({ id: r.id, expected_amount: val });
                             }
-                          }
-                          if (e.key === 'Escape') setEditingIncomeId(null);
-                        }}
-                        autoFocus
-                        className="w-24 px-2 py-1 border border-green-300 rounded text-sm font-mono focus:outline-none focus:ring-1 focus:ring-green-400 text-left"
-                      />
+                          }}
+                          className="text-green-600 hover:text-green-800"
+                        >✓</button>
+                        <button onClick={() => setEditingIncomeId(null)} className="text-gray-400 hover:text-gray-600">✕</button>
+                      </div>
+                    ) : (
                       <button
-                        onClick={() => {
-                          const val = parseFloat(editingIncomeValue);
-                          if (!isNaN(val) && val > 0) {
-                            incomeMutation.mutate({ id: r.id, expected_amount: val });
-                          }
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingIncomeId(r.id);
+                          setEditingIncomeValue(String(r.expected_amount));
                         }}
-                        className="text-green-600 hover:text-green-800"
-                      >✓</button>
-                      <button onClick={() => setEditingIncomeId(null)} className="text-gray-400 hover:text-gray-600">✕</button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingIncomeId(r.id);
-                        setEditingIncomeValue(String(r.expected_amount));
-                      }}
-                      className="font-mono text-sm text-green-600 font-medium hover:text-green-800 hover:underline cursor-pointer"
-                      title="לחץ לעריכה"
-                    >
-                      {formatNIS(r.expected_amount)}
-                    </button>
-                  )}
-                  {r.status === 'received' ? (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        incomeMutation.mutate({ id: r.id, actual_amount: 0, status: 'expected' });
-                      }}
-                      className="text-xs bg-green-100 text-green-700 hover:bg-red-50 hover:text-red-600 px-2 py-0.5 rounded-full transition-colors cursor-pointer"
-                      title="לחץ לביטול"
-                    >
-                      התקבל ✓
-                    </button>
-                  ) : (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        incomeMutation.mutate({ id: r.id, actual_amount: r.expected_amount, status: 'received' });
-                      }}
-                      className="text-xs bg-gray-100 text-gray-600 hover:bg-green-50 hover:text-green-700 px-2 py-0.5 rounded-full transition-colors"
-                    >
-                      סמן כהתקבל
-                    </button>
-                  )}
+                        className="font-mono text-sm text-green-600 font-medium hover:text-green-800 hover:underline cursor-pointer"
+                        title="לחץ לעריכה"
+                      >
+                        {formatNIS(r.expected_amount)}
+                      </button>
+                    )}
+                    {r.status === 'received' ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          incomeMutation.mutate({ id: r.id, actual_amount: 0, status: 'expected' });
+                        }}
+                        className="text-xs bg-green-100 text-green-700 hover:bg-red-50 hover:text-red-600 px-2 py-0.5 rounded-full transition-colors cursor-pointer"
+                        title="לחץ לביטול"
+                      >
+                        התקבל ✓
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          incomeMutation.mutate({ id: r.id, actual_amount: r.expected_amount, status: 'received' });
+                        }}
+                        className="text-xs bg-gray-100 text-gray-600 hover:bg-green-50 hover:text-green-700 px-2 py-0.5 rounded-full transition-colors"
+                      >
+                        סמן כהתקבל
+                      </button>
+                    )}
+                  </div>
                 </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 py-2">אין הכנסות קבועות מוגדרות</p>
+          )}
+
+          {/* Variable income section */}
+          {variableIncome && variableIncome.total > 0 && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-semibold text-sm text-emerald-700">הכנסות משתנות (זיכויים)</h4>
+                <span className="font-mono text-sm text-emerald-600 font-medium">
+                  +{formatNIS(variableIncome.total)}
+                </span>
               </div>
-            ))}
-          </div>
+              <div className="space-y-1.5">
+                {variableIncome.refunds.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between py-1.5 text-sm">
+                    <span className="text-gray-600 truncate flex-1 min-w-0">{item.description}</span>
+                    <span className="font-mono text-emerald-600 mr-2">+{formatNIS(item.amount)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -35,7 +35,16 @@ router.get('/summary', (req: Request, res: Response) => {
     WHERE ir.month = ? AND is2.user_id = ?
   `).get(month, userId) as any;
 
-  const totalIncome = incomeRow.total;
+  // Variable income: credit card refunds (negative charged_amount)
+  const variableIncomeRow = db.prepare(`
+    SELECT COALESCE(SUM(ABS(charged_amount)), 0) as total
+    FROM transactions
+    WHERE strftime('%Y-%m', date) = ?
+      AND charged_amount < 0
+      AND user_id = ?
+  `).get(month, userId) as any;
+
+  const totalIncome = incomeRow.total + variableIncomeRow.total;
 
   // Add percentages
   const breakdown = expensesByCategory.map((c: any) => ({
@@ -87,8 +96,21 @@ router.get('/cashflow', (req: Request, res: Response) => {
     WHERE ir.month = ? AND is2.user_id = ?
   `).all(month, userId) as any[];
 
-  const expectedIncome = incomeRecords.reduce((s: number, r: any) => s + r.expected_amount, 0);
-  const actualIncome = incomeRecords.reduce((s: number, r: any) => s + (r.actual_amount || 0), 0);
+  const fixedIncome = incomeRecords.reduce((s: number, r: any) => s + r.expected_amount, 0);
+  const actualFixedIncome = incomeRecords.reduce((s: number, r: any) => s + (r.actual_amount || 0), 0);
+
+  // Variable income: credit card refunds (negative charged_amount)
+  const variableIncomeRow = db.prepare(`
+    SELECT COALESCE(SUM(ABS(charged_amount)), 0) as total
+    FROM transactions
+    WHERE strftime('%Y-%m', date) = ?
+      AND charged_amount < 0
+      AND user_id = ?
+  `).get(month, userId) as any;
+  const variableIncome = variableIncomeRow.total;
+
+  const expectedIncome = fixedIncome + variableIncome;
+  const actualIncome = actualFixedIncome + variableIncome;
 
   // ---- 2. HISTORICAL AVERAGES PER CATEGORY ----
   // Use ALL available months as history (up to the current month, excluding it)
@@ -265,6 +287,7 @@ router.get('/cashflow', (req: Request, res: Response) => {
   res.json({
     expectedIncome,
     actualIncome,
+    variableIncome,
     totalForecastExpenses: totalForecast,
     totalActualExpenses: totalActual,
     categoryForecasts,
@@ -370,8 +393,18 @@ router.get('/forecast', (req: Request, res: Response) => {
     WHERE ir.month = ? AND is2.user_id = ?
   `).all(month, userId) as any[];
 
-  const expectedIncome = incomeRecords.reduce((sum: number, r: any) => sum + r.expected_amount, 0);
-  const actualIncome = incomeRecords.reduce((sum: number, r: any) => sum + (r.actual_amount || 0), 0);
+  // Variable income (credit card refunds)
+  const forecastVarIncomeRow = db.prepare(`
+    SELECT COALESCE(SUM(ABS(charged_amount)), 0) as total
+    FROM transactions
+    WHERE strftime('%Y-%m', date) = ?
+      AND charged_amount < 0
+      AND user_id = ?
+  `).get(month, userId) as any;
+  const forecastVariableIncome = forecastVarIncomeRow.total;
+
+  const expectedIncome = incomeRecords.reduce((sum: number, r: any) => sum + r.expected_amount, 0) + forecastVariableIncome;
+  const actualIncome = incomeRecords.reduce((sum: number, r: any) => sum + (r.actual_amount || 0), 0) + forecastVariableIncome;
 
   // Fixed expenses
   const fixedExpenses = db.prepare(
@@ -433,7 +466,7 @@ router.get('/trends', (req: Request, res: Response) => {
     ORDER BY month
   `).all(startMonth, userId) as any[];
 
-  // Get income per month
+  // Get income per month (fixed income from income_records)
   const income = db.prepare(`
     SELECT ir.month, SUM(COALESCE(ir.actual_amount, ir.expected_amount)) as total
     FROM income_records ir
@@ -443,8 +476,19 @@ router.get('/trends', (req: Request, res: Response) => {
     ORDER BY ir.month
   `).all(startMonth, userId) as any[];
 
+  // Variable income per month (credit card refunds)
+  const variableIncomeByMonth = db.prepare(`
+    SELECT strftime('%Y-%m', date) as month, SUM(ABS(charged_amount)) as total
+    FROM transactions
+    WHERE strftime('%Y-%m', date) >= ?
+      AND charged_amount < 0
+      AND user_id = ?
+    GROUP BY strftime('%Y-%m', date)
+  `).all(startMonth, userId) as any[];
+
   const expenseMap = new Map(expenses.map((e: any) => [e.month, e.total]));
   const incomeMap = new Map(income.map((i: any) => [i.month, i.total]));
+  const variableIncomeMap = new Map(variableIncomeByMonth.map((v: any) => [v.month, v.total]));
 
   // Build month-by-month data
   const months: any[] = [];
@@ -453,7 +497,7 @@ router.get('/trends', (req: Request, res: Response) => {
 
   while (current.isBefore(end) || current.format('YYYY-MM') === end.format('YYYY-MM')) {
     const m = current.format('YYYY-MM');
-    const inc = incomeMap.get(m) || 0;
+    const inc = (incomeMap.get(m) || 0) + (variableIncomeMap.get(m) || 0);
     const exp = expenseMap.get(m) || 0;
     months.push({
       month: m,

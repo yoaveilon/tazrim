@@ -5,7 +5,7 @@ import type {
   DashboardSummary, DashboardForecast, MonthlyTrendPoint, CashFlowData, WeeklyBreakdown,
   PaginatedResponse, CreateCategoryInput, CreateRuleInput,
   CreateIncomeInput, CreateFixedExpenseInput, UpdateTransactionInput,
-  AppSettings,
+  AppSettings, VariableIncomeData,
 } from 'shared/src/types';
 
 const api = axios.create({
@@ -182,6 +182,11 @@ export async function getIncomeRecords(month: string): Promise<IncomeRecord[]> {
 
 export async function updateIncomeRecord(id: number, input: Partial<IncomeRecord>): Promise<IncomeRecord> {
   const { data } = await api.patch(`/income/records/${id}`, input);
+  return data;
+}
+
+export async function getVariableIncome(month: string): Promise<VariableIncomeData> {
+  const { data } = await api.get('/income/variable', { params: { month } });
   return data;
 }
 

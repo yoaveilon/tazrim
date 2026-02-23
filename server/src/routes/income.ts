@@ -137,4 +137,44 @@ router.patch('/records/:id', (req: Request, res: Response) => {
   res.json(updated);
 });
 
+// GET /api/income/variable?month=YYYY-MM
+// Returns credit card refunds (negative charged_amount transactions) as "variable income"
+router.get('/variable', (req: Request, res: Response) => {
+  const db = getDb();
+  const userId = req.user!.id;
+  const { month } = req.query as Record<string, string>;
+
+  if (!month) {
+    res.status(400).json({ error: 'חודש נדרש (פורמט: YYYY-MM)' });
+    return;
+  }
+
+  // Get individual refund transactions
+  const refunds = db.prepare(`
+    SELECT
+      t.id, t.date, t.description, t.charged_amount,
+      t.original_amount, t.original_currency,
+      t.card_last_four, t.source_company,
+      c.name as category_name, c.icon as category_icon, c.color as category_color
+    FROM transactions t
+    LEFT JOIN categories c ON t.category_id = c.id
+    WHERE strftime('%Y-%m', t.date) = ?
+      AND t.charged_amount < 0
+      AND t.user_id = ?
+    ORDER BY t.date DESC
+  `).all(month, userId) as any[];
+
+  // Calculate total (make it positive for display)
+  const total = refunds.reduce((sum: number, r: any) => sum + Math.abs(r.charged_amount), 0);
+
+  res.json({
+    refunds: refunds.map((r: any) => ({
+      ...r,
+      amount: Math.abs(r.charged_amount), // positive for display
+    })),
+    total,
+    count: refunds.length,
+  });
+});
+
 export default router;

@@ -215,11 +215,34 @@ export interface MonthlyTrendPoint {
   balance: number;
 }
 
+// --- Variable Income (credit card refunds) ---
+export interface VariableIncomeItem {
+  id: number;
+  date: string;
+  description: string;
+  charged_amount: number;
+  amount: number; // absolute value for display
+  original_amount: number;
+  original_currency: string;
+  card_last_four: string | null;
+  source_company: string | null;
+  category_name: string | null;
+  category_icon: string | null;
+  category_color: string | null;
+}
+
+export interface VariableIncomeData {
+  refunds: VariableIncomeItem[];
+  total: number;
+  count: number;
+}
+
 // --- Cash Flow ---
 export interface CashFlowData {
   // Income
   expectedIncome: number;
   actualIncome: number;
+  variableIncome?: number;
   // Totals
   totalForecastExpenses: number;
   totalActualExpenses: number;
