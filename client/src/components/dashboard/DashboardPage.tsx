@@ -46,12 +46,17 @@ export default function DashboardPage({ month }: Props) {
 
   const remaining = cashflow?.remainingToSpend || 0;
   const remainingColor = remaining >= 0 ? 'text-green-600' : 'text-red-600';
-  const remainingBg = remaining >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200';
 
   // Progress bar: how much of expected income has been spent
   const spentPercent = cashflow?.expectedIncome
     ? Math.min(100, Math.round((cashflow.totalActualExpenses / cashflow.expectedIncome) * 100))
     : 0;
+
+  // Days remaining in month
+  const now = new Date();
+  const daysInMonth = new Date(parseInt(month.split('-')[0]), parseInt(month.split('-')[1]), 0).getDate();
+  const currentDay = month === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}` ? now.getDate() : daysInMonth;
+  const daysRemaining = Math.max(0, daysInMonth - currentDay);
 
   // Mutation for setting forecast overrides
   const overrideMutation = useMutation({
@@ -68,41 +73,62 @@ export default function DashboardPage({ month }: Props) {
 
   return (
     <div>
-      <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">תזרים חודשי — {formatMonthHebrew(month)}</h2>
+      {/* Top summary: 3 cards row like screenshot */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 mb-6">
+        {/* Balance card */}
+        <div className="card !p-0 overflow-hidden">
+          <div className="px-6 pt-5 pb-1">
+            <span className="text-xs font-semibold text-red-500 tracking-wide">יתרה נותרת</span>
+          </div>
+          <div className="px-6 pb-2">
+            <p className={`text-3xl sm:text-4xl font-bold ${remainingColor}`}>
+              {formatNIS(remaining)}
+            </p>
+          </div>
+          <div className="px-6 pb-4 text-xs text-gray-400">מנגנת עלייה</div>
+          <div className="border-t border-gray-100 px-6 py-3 flex items-center justify-between">
+            <button className="text-xs text-gray-500 hover:text-accent-blue transition-colors font-medium">העבר לחיסכון</button>
+          </div>
+        </div>
 
-      {/* Top summary: 4 cards */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
-        <div className="card !p-4 sm:!p-6 cursor-pointer hover:shadow-md transition-shadow" onClick={() => setIncomeOpen(!incomeOpen)}>
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-gray-500 mb-1">הכנסות צפויות</p>
+        {/* Expenses card */}
+        <div className="card !p-0 overflow-hidden cursor-default">
+          <div className="px-6 pt-5 pb-1">
+            <span className="text-xs font-semibold text-green-500 tracking-wide">הוצאות צפויות</span>
+          </div>
+          <div className="px-6 pb-2">
+            <p className="text-3xl sm:text-4xl font-bold text-gray-900">
+              {formatNIS(cashflow?.totalForecastExpenses || 0)}
+            </p>
+          </div>
+          <div className="px-6 pb-4 text-xs text-gray-400">
+            {spentPercent}% מההכנסה
+          </div>
+          <div className="border-t border-gray-100 px-6 py-3 flex items-center justify-between">
+            <button className="text-xs text-gray-500 hover:text-accent-blue transition-colors font-medium">ניהול תשלומים</button>
+          </div>
+        </div>
+
+        {/* Income card */}
+        <div
+          className="card !p-0 overflow-hidden cursor-pointer"
+          onClick={() => setIncomeOpen(!incomeOpen)}
+        >
+          <div className="px-6 pt-5 pb-1">
+            <span className="text-xs font-semibold text-accent-blue tracking-wide">הכנסה צפויה</span>
+          </div>
+          <div className="px-6 pb-2">
+            <p className="text-3xl sm:text-4xl font-bold text-gray-900">
+              {formatNIS(cashflow?.expectedIncome || 0)}
+            </p>
+          </div>
+          <div className="px-6 pb-4 text-xs text-gray-400">
+            {cashflow && cashflow.actualIncome > 0 ? `התקבל: ${formatNIS(cashflow.actualIncome)}` : 'מעודכן להיום'}
+          </div>
+          <div className="border-t border-gray-100 px-6 py-3 flex items-center justify-between">
+            <button className="text-xs text-gray-500 hover:text-accent-blue transition-colors font-medium">פרטי הפקדות</button>
             <span className={`text-xs text-gray-400 transition-transform duration-200 ${incomeOpen ? 'rotate-180' : ''}`}>▾</span>
           </div>
-          <p className="text-lg sm:text-xl font-bold text-green-600">
-            {formatNIS(cashflow?.expectedIncome || 0)}
-          </p>
-          {cashflow && cashflow.actualIncome > 0 && (
-            <p className="text-xs text-gray-400 mt-1">
-              התקבל: {formatNIS(cashflow.actualIncome)}
-            </p>
-          )}
-        </div>
-        <div className="card !p-4 sm:!p-6">
-          <p className="text-xs text-gray-500 mb-1">הוצאות צפויות</p>
-          <p className="text-lg sm:text-xl font-bold text-orange-500">
-            {formatNIS(cashflow?.totalForecastExpenses || 0)}
-          </p>
-        </div>
-        <div className="card !p-4 sm:!p-6">
-          <p className="text-xs text-gray-500 mb-1">הוצאות בפועל</p>
-          <p className="text-lg sm:text-xl font-bold text-red-600">
-            {formatNIS(cashflow?.totalActualExpenses || 0)}
-          </p>
-        </div>
-        <div className={`card !p-4 sm:!p-6 border ${remainingBg}`}>
-          <p className="text-xs text-gray-500 mb-1">נותר להוציא</p>
-          <p className={`text-lg sm:text-xl font-bold ${remainingColor}`}>
-            {formatNIS(remaining)}
-          </p>
         </div>
       </div>
 
@@ -135,7 +161,7 @@ export default function DashboardPage({ month }: Props) {
                             if (e.key === 'Escape') setEditingIncomeId(null);
                           }}
                           autoFocus
-                          className="w-24 px-2 py-1 border border-green-300 rounded text-sm font-mono focus:outline-none focus:ring-1 focus:ring-green-400 text-left"
+                          className="w-24 px-2 py-1 border border-green-300 rounded-xl text-sm font-mono focus:outline-none focus:ring-1 focus:ring-green-400 text-left"
                         />
                         <button
                           onClick={() => {
@@ -167,7 +193,7 @@ export default function DashboardPage({ month }: Props) {
                           e.stopPropagation();
                           incomeMutation.mutate({ id: r.id, actual_amount: 0, status: 'expected' });
                         }}
-                        className="text-xs bg-green-100 text-green-700 hover:bg-red-50 hover:text-red-600 px-2 py-0.5 rounded-full transition-colors cursor-pointer"
+                        className="text-xs bg-green-100 text-green-700 hover:bg-red-50 hover:text-red-600 px-2.5 py-1 rounded-full transition-colors cursor-pointer"
                         title="לחץ לביטול"
                       >
                         התקבל ✓
@@ -178,7 +204,7 @@ export default function DashboardPage({ month }: Props) {
                           e.stopPropagation();
                           incomeMutation.mutate({ id: r.id, actual_amount: r.expected_amount, status: 'received' });
                         }}
-                        className="text-xs bg-gray-100 text-gray-600 hover:bg-green-50 hover:text-green-700 px-2 py-0.5 rounded-full transition-colors"
+                        className="text-xs bg-gray-100 text-gray-600 hover:bg-green-50 hover:text-green-700 px-2.5 py-1 rounded-full transition-colors"
                       >
                         סמן כהתקבל
                       </button>
@@ -213,30 +239,73 @@ export default function DashboardPage({ month }: Props) {
         </div>
       )}
 
-      {/* Spending progress bar */}
+      {/* Budget progress tracker - big card like screenshot */}
       {cashflow && cashflow.expectedIncome > 0 && (
         <div className="card mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">ניצול תקציב</span>
-            <span className="text-sm font-mono font-medium">
-              {formatNIS(cashflow.totalActualExpenses)} / {formatNIS(cashflow.expectedIncome)}
-            </span>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+            <div>
+              <h3 className="text-sm text-gray-500 font-medium">מעקב ביצוע</h3>
+              <p className="text-xs text-gray-400 mt-0.5">מול יעדים שהוגדרו</p>
+            </div>
+            <div className="text-center sm:text-left">
+              <p className="text-5xl sm:text-6xl font-bold text-gray-900">{spentPercent}%</p>
+              <p className="text-sm text-gray-400 mt-1">ניצול תקציב חודשי</p>
+            </div>
           </div>
-          <div className="w-full bg-gray-100 rounded-full h-4 overflow-hidden">
+
+          {/* Progress bar */}
+          <div className="w-full rounded-full h-3 overflow-hidden bg-gray-100 mb-6">
             <div
-              className={`h-4 rounded-full transition-all duration-500 ${
-                spentPercent > 90 ? 'bg-red-500' : spentPercent > 70 ? 'bg-orange-400' : 'bg-green-500'
-              }`}
-              style={{ width: `${spentPercent}%` }}
+              className="h-3 rounded-full transition-all duration-700 ease-out"
+              style={{
+                width: `${spentPercent}%`,
+                background: spentPercent > 90
+                  ? 'linear-gradient(to left, #EF4444, #F97316)'
+                  : spentPercent > 70
+                    ? 'linear-gradient(to left, #F97316, #FBBF24)'
+                    : 'linear-gradient(to left, #818CF8, #4361EE)',
+              }}
             />
           </div>
-          <p className="text-xs text-gray-400 mt-1 text-left">{spentPercent}%</p>
+
+          {/* Stats row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+            <div>
+              <p className="text-xs text-gray-400 mb-1">תקציב כולל</p>
+              <p className="text-lg sm:text-xl font-bold text-gray-900">
+                {formatNIS(cashflow.expectedIncome)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 mb-1">הוצאה בפועל</p>
+              <p className="text-lg sm:text-xl font-bold text-red-500">
+                {formatNIS(cashflow.totalActualExpenses)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 mb-1">נותר לשימוש</p>
+              <p className={`text-lg sm:text-xl font-bold ${remainingColor}`}>
+                {formatNIS(remaining)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 mb-1">ימים שנותרו</p>
+              <p className="text-lg sm:text-xl font-bold text-gray-900">
+                {daysRemaining} ימים
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Category forecasts */}
       <div className="mb-6">
-        <h3 className="font-semibold mb-4">הוצאות לפי קטגוריה</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-gray-900">פירוט הוצאות לפי קטגוריות</h3>
+          <button className="text-sm text-accent-blue hover:text-primary-700 font-medium transition-colors">
+            הצג הכל
+          </button>
+        </div>
         {cashflow?.categoryForecasts?.length ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {cashflow.categoryForecasts.map((cat: CategoryForecast) => (
@@ -249,7 +318,7 @@ export default function DashboardPage({ month }: Props) {
           </div>
         ) : (
           <div className="card">
-            <p className="text-gray-500 text-center py-8">אין נתוני תזרים עדיין. העלה קבצי אשראי כדי לראות תחזיות.</p>
+            <p className="text-gray-400 text-center py-8">אין נתוני תזרים עדיין. העלה קבצי אשראי כדי לראות תחזיות.</p>
           </div>
         )}
       </div>
@@ -268,6 +337,10 @@ function CategoryCard({ cat, onUpdateForecast }: { cat: CategoryForecast; onUpda
   const isOver = cat.difference < 0;
   const noForecast = cat.monthsOfData === 0;
   const isManualOverride = cat.monthsOfData === -1;
+
+  // Badge label
+  const badgeLabel = isOver ? 'חריגה קלה' : 'עומד ביעד';
+  const badgeColor = isOver ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600';
 
   function startEditing(e: React.MouseEvent) {
     e.stopPropagation();
@@ -291,128 +364,113 @@ function CategoryCard({ cat, onUpdateForecast }: { cat: CategoryForecast; onUpda
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-      {/* Header: category name */}
-      <div className="px-5 pt-5 pb-3 flex items-center justify-between">
-        <h4 className="font-bold text-lg text-gray-800">
-          הוצאות {cat.name}
-        </h4>
-        {isManualOverride && (
-          <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">ידני</span>
+    <div className="bg-white rounded-3xl border border-gray-100/80 shadow-card hover:shadow-card-hover transition-all duration-200 overflow-hidden">
+      {/* Header: badge + icon */}
+      <div className="px-5 pt-5 pb-2 flex items-center justify-between">
+        <span className={`text-[11px] font-medium px-2.5 py-1 rounded-full ${badgeColor}`}>
+          {badgeLabel}
+        </span>
+        <div className="w-10 h-10 rounded-2xl bg-gray-50 flex items-center justify-center text-lg">
+          {cat.icon || '📦'}
+        </div>
+      </div>
+
+      {/* Category name */}
+      <div className="px-5 pb-1">
+        <h4 className="font-bold text-base text-gray-900">{cat.name}</h4>
+        <p className="text-[11px] text-gray-400 mt-0.5">
+          {isManualOverride ? 'ידני' : noForecast ? 'הוצאה משתנה' : `הוצאה ${cat.monthsOfData > 0 ? 'משתנה' : 'קבועה'} • ${cat.monthsOfData > 0 ? 'אשראי' : 'מזומן'}`}
+        </p>
+      </div>
+
+      {/* Amount */}
+      <div className="px-5 pt-2 pb-4">
+        {isEditing ? (
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            <input
+              type="number"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onBlur={handleSave}
+              autoFocus
+              className="w-28 px-3 py-1.5 border border-blue-300 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="אוטו"
+            />
+            <button onClick={handleSave} className="text-green-600 hover:text-green-800" title="שמור">✓</button>
+            <button onClick={() => setIsEditing(false)} className="text-gray-400 hover:text-gray-600" title="ביטול">✕</button>
+          </div>
+        ) : (
+          <p className="text-2xl font-bold text-gray-900">
+            {formatNIS(cat.actual)}
+          </p>
         )}
       </div>
 
-      {/* Stats row: actual (right) vs forecast (left) */}
-      <div className="px-5 pb-3 flex items-end justify-between">
-        <div>
-          <p className="text-xs text-gray-400 mb-1">יצא עד עכשיו</p>
-          <p className="text-xl font-bold text-[#4361EE]">
-            {formatNIS(cat.actual)}
-          </p>
-        </div>
-        <div className="text-left">
-          <p className="text-xs text-gray-400 mb-1">סה״כ מומלץ להוציא</p>
-          {isEditing ? (
-            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-              <input
-                type="number"
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onBlur={handleSave}
-                autoFocus
-                className="w-24 px-2 py-1 border border-blue-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-400"
-                placeholder="אוטו"
-              />
-              <button onClick={handleSave} className="text-green-600 hover:text-green-800" title="שמור">✓</button>
-              <button onClick={() => setIsEditing(false)} className="text-gray-400 hover:text-gray-600" title="ביטול">✕</button>
-            </div>
-          ) : (
-            <button
-              onClick={startEditing}
-              className="text-xl font-bold text-gray-700 hover:text-[#4361EE] transition-colors cursor-pointer"
-              title="לחץ לעריכת הצפי"
-            >
-              {noForecast ? '—' : formatNIS(cat.forecast)}
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Progress bar - blue gradient like RiseUp */}
-      <div className="px-5 pb-4">
-        <div className="w-full rounded-full h-2.5 overflow-hidden bg-[#C7D2FE]">
-          <div
-            className="h-2.5 rounded-full transition-all duration-500"
-            style={{
-              width: noForecast ? '100%' : `${Math.min(percent, 100)}%`,
-              background: isOver
-                ? '#EF4444'
-                : noForecast
-                  ? '#C7D2FE'
-                  : 'linear-gradient(to left, #818CF8, #4361EE)',
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Footer: expandable details */}
+      {/* Expand button */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full px-5 py-2.5 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+        className="w-full px-5 py-3 border-t border-gray-50 flex items-center justify-between text-sm text-gray-400 hover:bg-gray-50/80 transition-colors"
       >
-        <span>פירוט חודשי</span>
-        <span className={`transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}>▾</span>
+        <svg className={`w-5 h-5 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
       </button>
 
       {expanded && (
-        <div className="px-5 pb-4 border-t border-gray-50 bg-gray-50/50 space-y-2 text-sm">
-          <div className="flex justify-between pt-2">
+        <div className="px-5 pb-4 border-t border-gray-50 bg-gray-50/30 space-y-2.5 text-sm">
+          <div className="flex justify-between pt-3">
+            <span className="text-gray-500">צפי חודשי</span>
+            <button onClick={startEditing} className="font-mono font-medium text-accent-blue hover:underline cursor-pointer">
+              {noForecast ? '—' : formatNIS(cat.forecast)}
+            </button>
+          </div>
+          <div className="flex justify-between">
             <span className="text-gray-500">ניצול</span>
-            <span className={`font-mono font-medium ${isOver ? 'text-red-600' : 'text-green-600'}`}>
+            <span className={`font-mono font-medium ${isOver ? 'text-red-500' : 'text-green-600'}`}>
               {noForecast ? '—' : `${percent}%`}
             </span>
           </div>
           {!noForecast && (
             <div className="flex justify-between">
               <span className="text-gray-500">{isOver ? 'חריגה' : 'נותר'}</span>
-              <span className={`font-mono font-medium ${isOver ? 'text-red-600' : 'text-green-600'}`}>
+              <span className={`font-mono font-medium ${isOver ? 'text-red-500' : 'text-green-600'}`}>
                 {formatNIS(Math.abs(cat.difference))}
               </span>
             </div>
           )}
-          <div className="flex justify-between">
-            <span className="text-gray-500">מקור הצפי</span>
-            <span className="text-gray-600">
-              {isManualOverride ? 'ידני' : cat.monthsOfData === 0 ? 'אין היסטוריה' : `ממוצע ${cat.monthsOfData} חודשים`}
-            </span>
+
+          {/* Progress bar */}
+          <div className="w-full rounded-full h-2 overflow-hidden bg-gray-200 mt-1">
+            <div
+              className="h-2 rounded-full transition-all duration-500"
+              style={{
+                width: noForecast ? '100%' : `${Math.min(percent, 100)}%`,
+                background: isOver
+                  ? '#EF4444'
+                  : noForecast
+                    ? '#D1D5DB'
+                    : 'linear-gradient(to left, #818CF8, #4361EE)',
+              }}
+            />
           </div>
-          {!noForecast && (
-            <div className="flex gap-2 pt-1">
-              <button
-                onClick={startEditing}
-                className="flex-1 text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg py-1.5 transition-colors"
-              >
-                ערוך צפי
-              </button>
-              {isManualOverride && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); onUpdateForecast(null); }}
-                  className="flex-1 text-xs bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-lg py-1.5 transition-colors"
-                >
-                  חזור לאוטומטי
-                </button>
-              )}
-            </div>
-          )}
-          {noForecast && (
+
+          <div className="flex gap-2 pt-2">
             <button
               onClick={startEditing}
-              className="w-full text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg py-1.5 transition-colors"
+              className="flex-1 text-xs bg-primary-50 text-accent-blue hover:bg-primary-100 rounded-xl py-2 transition-colors font-medium"
             >
-              הגדר צפי ידנית
+              ערוך צפי
             </button>
-          )}
+            {isManualOverride && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onUpdateForecast(null); }}
+                className="flex-1 text-xs bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-xl py-2 transition-colors font-medium"
+              >
+                חזור לאוטומטי
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
