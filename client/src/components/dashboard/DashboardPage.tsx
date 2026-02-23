@@ -310,43 +310,60 @@ function CategoryCard({ cat, onUpdateForecast }: { cat: CategoryForecast; onUpda
 
   return (
     <div className="bg-white rounded-3xl border border-gray-100/80 shadow-card hover:shadow-card-hover transition-all duration-200 overflow-hidden">
-      {/* Header: badge */}
-      <div className="px-5 pt-5 pb-2">
-        <span className={`text-[11px] font-medium px-2.5 py-1 rounded-full ${badgeColor}`}>
-          {badgeLabel}
-        </span>
-      </div>
-
-      {/* Category name */}
-      <div className="px-5 pb-1">
-        <h4 className="font-bold text-base text-gray-900">{cat.name}</h4>
-        <p className="text-[11px] text-gray-400 mt-0.5">
-          {isManualOverride ? 'ידני' : noForecast ? 'הוצאה משתנה' : `הוצאה ${cat.monthsOfData > 0 ? 'משתנה' : 'קבועה'} • ${cat.monthsOfData > 0 ? 'אשראי' : 'מזומן'}`}
-        </p>
-      </div>
-
-      {/* Amount */}
-      <div className="px-5 pt-2 pb-4">
-        {isEditing ? (
-          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-            <input
-              type="number"
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onBlur={handleSave}
-              autoFocus
-              className="w-28 px-3 py-1.5 border border-blue-300 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="אוטו"
-            />
-            <button onClick={handleSave} className="text-green-600 hover:text-green-800" title="שמור">✓</button>
-            <button onClick={() => setIsEditing(false)} className="text-gray-400 hover:text-gray-600" title="ביטול">✕</button>
+      {/* Main content: info + donut */}
+      <div className="px-5 pt-5 pb-4 flex items-center justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          {/* Badge */}
+          <span className={`text-[11px] font-medium px-2.5 py-1 rounded-full ${badgeColor}`}>
+            {badgeLabel}
+          </span>
+          {/* Category name */}
+          <h4 className="font-bold text-base text-gray-900 mt-2">{cat.name}</h4>
+          {/* Amount */}
+          <div className="mt-1">
+            {isEditing ? (
+              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                <input
+                  type="number"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  onBlur={handleSave}
+                  autoFocus
+                  className="w-28 px-3 py-1.5 border border-blue-300 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  placeholder="אוטו"
+                />
+                <button onClick={handleSave} className="text-green-600 hover:text-green-800" title="שמור">✓</button>
+                <button onClick={() => setIsEditing(false)} className="text-gray-400 hover:text-gray-600" title="ביטול">✕</button>
+              </div>
+            ) : (
+              <p className="text-xl font-bold text-gray-900">
+                {formatNIS(cat.actual)}
+              </p>
+            )}
           </div>
-        ) : (
-          <p className="text-2xl font-bold text-gray-900">
-            {formatNIS(cat.actual)}
-          </p>
-        )}
+        </div>
+
+        {/* Donut chart */}
+        <div className="relative w-16 h-16 flex-shrink-0">
+          <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="42" fill="none" stroke="#E5E7EB" strokeWidth="8" />
+            <circle
+              cx="50" cy="50" r="42"
+              fill="none"
+              strokeWidth="8"
+              strokeLinecap="round"
+              stroke={isOver ? '#EF4444' : noForecast ? '#D1D5DB' : '#4361EE'}
+              strokeDasharray={`${(noForecast ? 100 : Math.min(percent, 100)) * 2.64} ${264 - (noForecast ? 100 : Math.min(percent, 100)) * 2.64}`}
+              className="transition-all duration-500"
+            />
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className={`text-xs font-bold ${isOver ? 'text-red-500' : noForecast ? 'text-gray-400' : 'text-accent-blue'}`}>
+              {noForecast ? '—' : `${percent}%`}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Expand button */}
