@@ -17,6 +17,9 @@ COPY server/ server/
 COPY client/ client/
 COPY tsconfig.base.json ./
 
+# Build shared (TypeScript)
+RUN npm run build -w shared
+
 # Build client (Vite)
 RUN npm run build -w client
 
