@@ -44,7 +44,6 @@ export default function LoginPage() {
             shape="rectangular"
             size="large"
             text="signin_with"
-            locale="he"
           />
         </div>
 

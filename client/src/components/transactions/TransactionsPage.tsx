@@ -24,7 +24,7 @@ interface SimilarSuggestion {
   transactions: Transaction[];
   categoryId: number;
   categoryName: string;
-  categoryIcon?: string;
+  categoryIcon?: string | null;
   description: string;
 }
 

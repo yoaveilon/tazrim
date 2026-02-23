@@ -52,7 +52,7 @@ export default function IncomePage({ month }: Props) {
   });
 
   const updateRecordMutation = useMutation({
-    mutationFn: ({ id, ...input }: { id: number; actual_amount: number; status: string }) =>
+    mutationFn: ({ id, ...input }: { id: number; actual_amount: number; status: 'expected' | 'received' | 'partial' }) =>
       updateIncomeRecord(id, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['income-records'] });

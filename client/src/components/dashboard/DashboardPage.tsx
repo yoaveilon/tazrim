@@ -28,7 +28,7 @@ export default function DashboardPage({ month }: Props) {
   const queryClient = useQueryClient();
 
   const incomeMutation = useMutation({
-    mutationFn: ({ id, ...input }: { id: number; expected_amount?: number; actual_amount?: number; status?: string }) =>
+    mutationFn: ({ id, ...input }: { id: number; expected_amount?: number; actual_amount?: number; status?: 'expected' | 'received' | 'partial' }) =>
       updateIncomeRecord(id, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['income-records'] });
