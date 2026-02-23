@@ -20,7 +20,9 @@ COPY tsconfig.base.json ./
 # Build shared (TypeScript)
 RUN npm run build -w shared
 
-# Build client (Vite)
+# Build client (Vite) - pass Google Client ID as build arg
+ARG VITE_GOOGLE_CLIENT_ID
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 RUN npm run build -w client
 
 # Build server (TypeScript)
