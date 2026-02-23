@@ -85,10 +85,7 @@ export default function DashboardPage({ month }: Props) {
               {formatNIS(remaining)}
             </p>
           </div>
-          <div className="px-6 pb-4 text-xs text-gray-400">מנגנת עלייה</div>
-          <div className="border-t border-gray-100 px-6 py-3 flex items-center justify-between">
-            <button className="text-xs text-gray-500 hover:text-accent-blue transition-colors font-medium">העבר לחיסכון</button>
-          </div>
+          <div className="px-6 pb-5 text-xs text-gray-400">מנגנת עלייה</div>
         </div>
 
         {/* Expenses card */}
@@ -101,11 +98,8 @@ export default function DashboardPage({ month }: Props) {
               {formatNIS(cashflow?.totalForecastExpenses || 0)}
             </p>
           </div>
-          <div className="px-6 pb-4 text-xs text-gray-400">
+          <div className="px-6 pb-5 text-xs text-gray-400">
             {spentPercent}% מההכנסה
-          </div>
-          <div className="border-t border-gray-100 px-6 py-3 flex items-center justify-between">
-            <button className="text-xs text-gray-500 hover:text-accent-blue transition-colors font-medium">ניהול תשלומים</button>
           </div>
         </div>
 
@@ -365,14 +359,11 @@ function CategoryCard({ cat, onUpdateForecast }: { cat: CategoryForecast; onUpda
 
   return (
     <div className="bg-white rounded-3xl border border-gray-100/80 shadow-card hover:shadow-card-hover transition-all duration-200 overflow-hidden">
-      {/* Header: badge + icon */}
-      <div className="px-5 pt-5 pb-2 flex items-center justify-between">
+      {/* Header: badge */}
+      <div className="px-5 pt-5 pb-2">
         <span className={`text-[11px] font-medium px-2.5 py-1 rounded-full ${badgeColor}`}>
           {badgeLabel}
         </span>
-        <div className="w-10 h-10 rounded-2xl bg-gray-50 flex items-center justify-center text-lg">
-          {cat.icon || '📦'}
-        </div>
       </div>
 
       {/* Category name */}
