@@ -52,12 +52,6 @@ export default function DashboardPage({ month }: Props) {
     ? Math.min(100, Math.round((cashflow.totalActualExpenses / cashflow.expectedIncome) * 100))
     : 0;
 
-  // Days remaining in month
-  const now = new Date();
-  const daysInMonth = new Date(parseInt(month.split('-')[0]), parseInt(month.split('-')[1]), 0).getDate();
-  const currentDay = month === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}` ? now.getDate() : daysInMonth;
-  const daysRemaining = Math.max(0, daysInMonth - currentDay);
-
   // Mutation for setting forecast overrides
   const overrideMutation = useMutation({
     mutationFn: ({ categoryId, budget }: { categoryId: number; budget: number | null }) =>
@@ -73,33 +67,29 @@ export default function DashboardPage({ month }: Props) {
 
   return (
     <div>
-      {/* Top summary: 3 cards row like screenshot */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 mb-6">
+      {/* Top summary: 4 cards row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-5 mb-6">
         {/* Balance card */}
         <div className="card !p-0 overflow-hidden">
-          <div className="px-6 pt-5 pb-1">
+          <div className="px-5 pt-5 pb-1">
             <span className="text-xs font-semibold text-red-500 tracking-wide">נותר להוציא</span>
           </div>
-          <div className="px-6 pb-2">
-            <p className={`text-3xl sm:text-4xl font-bold ${remainingColor}`}>
+          <div className="px-5 pb-5">
+            <p className={`text-2xl sm:text-3xl font-bold ${remainingColor}`}>
               {formatNIS(remaining)}
             </p>
           </div>
-          <div className="px-6 pb-5 text-xs text-gray-400">מנגנת עלייה</div>
         </div>
 
         {/* Expenses card */}
-        <div className="card !p-0 overflow-hidden cursor-default">
-          <div className="px-6 pt-5 pb-1">
+        <div className="card !p-0 overflow-hidden">
+          <div className="px-5 pt-5 pb-1">
             <span className="text-xs font-semibold text-green-500 tracking-wide">הוצאות צפויות</span>
           </div>
-          <div className="px-6 pb-2">
-            <p className="text-3xl sm:text-4xl font-bold text-gray-900">
+          <div className="px-5 pb-5">
+            <p className="text-2xl sm:text-3xl font-bold text-gray-900">
               {formatNIS(cashflow?.totalForecastExpenses || 0)}
             </p>
-          </div>
-          <div className="px-6 pb-5 text-xs text-gray-400">
-            {spentPercent}% מההכנסה
           </div>
         </div>
 
@@ -108,20 +98,40 @@ export default function DashboardPage({ month }: Props) {
           className="card !p-0 overflow-hidden cursor-pointer"
           onClick={() => setIncomeOpen(!incomeOpen)}
         >
-          <div className="px-6 pt-5 pb-1">
+          <div className="px-5 pt-5 pb-1 flex items-center justify-between">
             <span className="text-xs font-semibold text-accent-blue tracking-wide">הכנסה צפויה</span>
+            <span className={`text-xs text-gray-400 transition-transform duration-200 ${incomeOpen ? 'rotate-180' : ''}`}>▾</span>
           </div>
-          <div className="px-6 pb-2">
-            <p className="text-3xl sm:text-4xl font-bold text-gray-900">
+          <div className="px-5 pb-5">
+            <p className="text-2xl sm:text-3xl font-bold text-gray-900">
               {formatNIS(cashflow?.expectedIncome || 0)}
             </p>
           </div>
-          <div className="px-6 pb-4 text-xs text-gray-400">
-            {cashflow && cashflow.actualIncome > 0 ? `התקבל: ${formatNIS(cashflow.actualIncome)}` : 'מעודכן להיום'}
-          </div>
-          <div className="border-t border-gray-100 px-6 py-3 flex items-center justify-between">
-            <button className="text-xs text-gray-500 hover:text-accent-blue transition-colors font-medium">פרטי הפקדות</button>
-            <span className={`text-xs text-gray-400 transition-transform duration-200 ${incomeOpen ? 'rotate-180' : ''}`}>▾</span>
+        </div>
+
+        {/* Donut chart card - budget usage */}
+        <div className="card !p-0 overflow-hidden flex items-center justify-center">
+          <div className="py-4 flex flex-col items-center">
+            <div className="relative w-20 h-20 sm:w-24 sm:h-24">
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="42" fill="none" stroke="#E5E7EB" strokeWidth="10" />
+                <circle
+                  cx="50" cy="50" r="42"
+                  fill="none"
+                  strokeWidth="10"
+                  strokeLinecap="round"
+                  stroke={spentPercent > 90 ? '#EF4444' : spentPercent > 70 ? '#F97316' : '#4361EE'}
+                  strokeDasharray={`${spentPercent * 2.64} ${264 - spentPercent * 2.64}`}
+                  className="transition-all duration-700 ease-out"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className={`text-lg sm:text-xl font-bold ${spentPercent > 90 ? 'text-red-500' : spentPercent > 70 ? 'text-orange-500' : 'text-accent-blue'}`}>
+                  {spentPercent}%
+                </span>
+              </div>
+            </div>
+            <p className="text-[11px] text-gray-400 mt-1.5">ניצול תקציב</p>
           </div>
         </div>
       </div>
@@ -230,65 +240,6 @@ export default function DashboardPage({ month }: Props) {
               </div>
             </div>
           )}
-        </div>
-      )}
-
-      {/* Budget progress tracker - big card like screenshot */}
-      {cashflow && cashflow.expectedIncome > 0 && (
-        <div className="card mb-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-            <div>
-              <h3 className="text-sm text-gray-500 font-medium">מעקב ביצוע</h3>
-              <p className="text-xs text-gray-400 mt-0.5">מול יעדים שהוגדרו</p>
-            </div>
-            <div className="text-center sm:text-left">
-              <p className="text-5xl sm:text-6xl font-bold text-gray-900">{spentPercent}%</p>
-              <p className="text-sm text-gray-400 mt-1">ניצול תקציב חודשי</p>
-            </div>
-          </div>
-
-          {/* Progress bar */}
-          <div className="w-full rounded-full h-3 overflow-hidden bg-gray-100 mb-6">
-            <div
-              className="h-3 rounded-full transition-all duration-700 ease-out"
-              style={{
-                width: `${spentPercent}%`,
-                background: spentPercent > 90
-                  ? 'linear-gradient(to left, #EF4444, #F97316)'
-                  : spentPercent > 70
-                    ? 'linear-gradient(to left, #F97316, #FBBF24)'
-                    : 'linear-gradient(to left, #818CF8, #4361EE)',
-              }}
-            />
-          </div>
-
-          {/* Stats row */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-            <div>
-              <p className="text-xs text-gray-400 mb-1">תקציב כולל</p>
-              <p className="text-lg sm:text-xl font-bold text-gray-900">
-                {formatNIS(cashflow.expectedIncome)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 mb-1">הוצאה בפועל</p>
-              <p className="text-lg sm:text-xl font-bold text-red-500">
-                {formatNIS(cashflow.totalActualExpenses)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 mb-1">נותר לשימוש</p>
-              <p className={`text-lg sm:text-xl font-bold ${remainingColor}`}>
-                {formatNIS(remaining)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 mb-1">ימים שנותרו</p>
-              <p className="text-lg sm:text-xl font-bold text-gray-900">
-                {daysRemaining} ימים
-              </p>
-            </div>
-          </div>
         </div>
       )}
 
