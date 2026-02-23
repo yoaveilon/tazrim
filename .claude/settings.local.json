@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(timeout 10 npx tsx:*)",
+      "Bash(npx vite build:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(npx tsx:*)",
+      "Bash(wc:*)",
+      "Bash(npx tsc:*)",
+      "Bash(ls:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(npm run dev:*)",
+      "Bash(node --import tsx:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git rm:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}
