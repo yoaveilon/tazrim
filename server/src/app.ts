@@ -21,6 +21,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Health check (no auth required)
+app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
+
 // Auth routes (no auth required)
 app.use('/api/auth', authRouter);
 
