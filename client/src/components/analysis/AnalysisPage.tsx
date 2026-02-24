@@ -8,6 +8,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend,
   LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
 } from 'recharts';
+import CategoryIcon from '../ui/CategoryIcon';
 
 interface Props {
   month: string;
@@ -67,7 +68,7 @@ export default function AnalysisPage({ month }: Props) {
   const efficiencyData = cashflow?.categoryForecasts
     ?.filter((c: CategoryForecast) => c.forecast > 0 && c.monthsOfData !== 0)
     .map((c: CategoryForecast) => ({
-      name: `${c.icon || ''} ${c.name}`,
+      name: c.name,
       efficiency: Math.round((c.actual / c.forecast) * 100),
       color: c.color,
     })) || [];
@@ -179,7 +180,7 @@ export default function AnalysisPage({ month }: Props) {
                     <div key={i} className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-1.5 min-w-0">
                         <span className="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style={{ backgroundColor: cat.color }} />
-                        <span className="truncate">{cat.icon} {cat.name}</span>
+                        <span className="truncate inline-flex items-center gap-1"><CategoryIcon icon={cat.icon} className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.5} />{cat.name}</span>
                       </div>
                       <span className="font-mono text-xs text-gray-600 flex-shrink-0 ms-2">
                         {formatNIS(cat.actual)}
@@ -205,7 +206,7 @@ export default function AnalysisPage({ month }: Props) {
               >
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                 <XAxis
-                  dataKey={(entry: CategoryForecast) => `${entry.icon || ''} ${entry.name}`}
+                  dataKey={(entry: CategoryForecast) => entry.name}
                   tick={{ fontSize: 12, fill: '#374151' }}
                   axisLine={{ stroke: '#e5e7eb' }}
                   tickLine={false}
@@ -347,7 +348,7 @@ export default function AnalysisPage({ month }: Props) {
                     <td className="py-2.5 pe-4">
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: cat.color }} />
-                        <span>{cat.icon} {cat.name}</span>
+                        <span className="inline-flex items-center gap-1"><CategoryIcon icon={cat.icon} className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.5} />{cat.name}</span>
                       </div>
                     </td>
                     <td className="py-2.5 pe-4 text-left font-mono">{formatNIS(cat.actual)}</td>

@@ -5,18 +5,14 @@ import {
   getCategories, getCategoryUsage, createCategory, updateCategory, deleteCategory,
 } from '../../services/api';
 import type { Category } from 'shared/src/types';
+import { AlertTriangle } from 'lucide-react';
+import CategoryIcon, { PRESET_ICON_NAMES, getIconComponent } from '../ui/CategoryIcon';
 
 const PRESET_COLORS = [
   '#22C55E', '#F97316', '#EF4444', '#3B82F6', '#A855F7',
   '#EC4899', '#14B8A6', '#F59E0B', '#6366F1', '#8B5CF6',
   '#06B6D4', '#D946EF', '#6B7280', '#10B981', '#0EA5E9',
   '#E11D48', '#84CC16', '#F43F5E',
-];
-
-const PRESET_ICONS = [
-  '🛒', '🍽️', '⛽', '📱', '👕', '🏥', '📚', '🎬', '🚌', '🛡️',
-  '🏠', '🔄', '📦', '💰', '💼', '📈', '🎵', '✈️', '🏋️', '🐾',
-  '👶', '💻', '🎁', '🧹', '💊', '🔧', '🚗', '☕', '🎮', '📝',
 ];
 
 interface EditingCategory {
@@ -35,7 +31,7 @@ interface DeleteModal {
 export default function CategoriesPage() {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
-  const [icon, setIcon] = useState('📦');
+  const [icon, setIcon] = useState('Package');
   const [color, setColor] = useState('#6B7280');
   const [isExpense, setIsExpense] = useState(true);
   const [editing, setEditing] = useState<EditingCategory | null>(null);
@@ -94,7 +90,7 @@ export default function CategoriesPage() {
   const resetForm = () => {
     setShowForm(false);
     setName('');
-    setIcon('📦');
+    setIcon('Package');
     setColor('#6B7280');
     setIsExpense(true);
   };
@@ -165,18 +161,18 @@ export default function CategoriesPage() {
           <div className="mb-4">
             <label className="label">אייקון</label>
             <div className="flex flex-wrap gap-2">
-              {PRESET_ICONS.map((ic) => (
+              {PRESET_ICON_NAMES.map((ic) => (
                 <button
                   key={ic}
                   type="button"
                   onClick={() => setIcon(ic)}
-                  className={`w-9 h-9 rounded-lg text-lg flex items-center justify-center transition-all ${
+                  className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
                     icon === ic
                       ? 'bg-primary-100 ring-2 ring-primary-500 scale-110'
                       : 'bg-gray-50 hover:bg-gray-100'
                   }`}
                 >
-                  {ic}
+                  <CategoryIcon icon={ic} className="w-5 h-5" strokeWidth={1.5} />
                 </button>
               ))}
             </div>
@@ -201,10 +197,10 @@ export default function CategoriesPage() {
 
           <div className="flex items-center gap-3">
             <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center text-lg"
-              style={{ backgroundColor: color + '20' }}
+              className="w-10 h-10 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: color + '20', color }}
             >
-              {icon}
+              <CategoryIcon icon={icon} className="w-5 h-5" strokeWidth={1.5} />
             </div>
             <span className="text-sm text-gray-500">תצוגה מקדימה: <strong>{name || '...'}</strong></span>
           </div>
@@ -233,7 +229,7 @@ export default function CategoriesPage() {
                   setEditing({
                     id: cat.id,
                     name: cat.name,
-                    icon: cat.icon || '📦',
+                    icon: cat.icon || 'Package',
                     color: cat.color,
                     is_expense: cat.is_expense,
                   })
@@ -266,7 +262,7 @@ export default function CategoriesPage() {
                   setEditing({
                     id: cat.id,
                     name: cat.name,
-                    icon: cat.icon || '📦',
+                    icon: cat.icon || 'Package',
                     color: cat.color,
                     is_expense: cat.is_expense,
                   })
@@ -330,10 +326,10 @@ function CategoryRow({
         className="flex items-center gap-3 py-2 px-3 bg-primary-50 rounded-lg border border-primary-200"
       >
         <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-sm flex-shrink-0"
-          style={{ backgroundColor: editing.color + '20' }}
+          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ backgroundColor: editing.color + '20', color: editing.color }}
         >
-          {editing.icon}
+          <CategoryIcon icon={editing.icon} className="w-4 h-4" strokeWidth={1.5} />
         </div>
         <input
           value={editing.name}
@@ -350,9 +346,9 @@ function CategoryRow({
         <select
           value={editing.icon}
           onChange={(e) => onEditChange({ ...editing, icon: e.target.value })}
-          className="input py-1 text-sm w-16"
+          className="input py-1 text-sm w-20"
         >
-          {PRESET_ICONS.map((ic) => (
+          {PRESET_ICON_NAMES.map((ic) => (
             <option key={ic} value={ic}>{ic}</option>
           ))}
         </select>
@@ -370,10 +366,10 @@ function CategoryRow({
     <div className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors group">
       <div className="flex items-center gap-3">
         <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-sm"
-          style={{ backgroundColor: category.color + '20' }}
+          className="w-8 h-8 rounded-lg flex items-center justify-center"
+          style={{ backgroundColor: category.color + '20', color: category.color }}
         >
-          {category.icon || '📦'}
+          <CategoryIcon icon={category.icon} className="w-4 h-4" strokeWidth={1.5} />
         </div>
         <span className="font-medium text-sm">{category.name}</span>
         {count > 0 && (
@@ -419,13 +415,14 @@ function DeleteCategoryModal({
       <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
         <h3 className="text-lg font-bold mb-2">מחיקת קטגוריה</h3>
         <p className="text-gray-600 mb-1">
-          האם למחוק את הקטגוריה <strong>"{category.icon} {category.name}"</strong>?
+          האם למחוק את הקטגוריה <strong>"{category.name}"</strong>?
         </p>
 
         {count > 0 ? (
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 my-4">
-            <p className="text-amber-800 text-sm font-medium mb-2">
-              ⚠️ יש {count} עסקאות משויכות לקטגוריה זו
+            <p className="text-amber-800 text-sm font-medium mb-2 flex items-center gap-1.5">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
+              יש {count} עסקאות משויכות לקטגוריה זו
             </p>
             <p className="text-amber-700 text-sm mb-3">מה לעשות עם העסקאות?</p>
             <select
@@ -436,7 +433,7 @@ function DeleteCategoryModal({
               <option value="">הסר סיווג (יהפכו ללא קטגוריה)</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
-                  העבר ל: {c.icon} {c.name}
+                  העבר ל: {c.name}
                 </option>
               ))}
             </select>

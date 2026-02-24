@@ -8,6 +8,8 @@ import {
 import { formatNIS } from '../../utils/currency';
 import { formatDateHebrew } from '../../utils/date';
 import type { Transaction, Category } from 'shared/src/types';
+import { Pin, Receipt, RefreshCw } from 'lucide-react';
+import CategoryIcon from '../ui/CategoryIcon';
 
 interface Props {
   month: string;
@@ -189,7 +191,7 @@ export default function TransactionsPage({ month }: Props) {
         >
           <option value="">כל הקטגוריות</option>
           {expenseCategories.map((c: Category) => (
-            <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+            <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
       </div>
@@ -200,7 +202,7 @@ export default function TransactionsPage({ month }: Props) {
           <div className="text-center py-12 text-gray-500">טוען...</div>
         ) : !txnData?.data?.length ? (
           <div className="text-center py-12 text-gray-500">
-            <div className="text-4xl mb-3">🧾</div>
+            <div className="text-gray-300 mb-3"><Receipt className="w-10 h-10 mx-auto" strokeWidth={1.5} /></div>
             <p>אין עסקאות להצגה</p>
             <p className="text-sm mt-1">יש להעלות קובץ תנועות אשראי</p>
           </div>
@@ -239,7 +241,7 @@ export default function TransactionsPage({ month }: Props) {
                       >
                         <option value="">ללא קטגוריה</option>
                         {expenseCategories.map((c: Category) => (
-                          <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                          <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                       </select>
                     ) : (
@@ -251,7 +253,7 @@ export default function TransactionsPage({ month }: Props) {
                           color: txn.category_color || '#6b7280',
                         }}
                       >
-                        {txn.category_icon && <span>{txn.category_icon}</span>}
+                        {txn.category_icon && <CategoryIcon icon={txn.category_icon} className="w-3.5 h-3.5" strokeWidth={1.5} />}
                         {txn.category_name || 'לא מסווג'}
                       </button>
                     )}
@@ -270,7 +272,7 @@ export default function TransactionsPage({ month }: Props) {
                       className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-blue-600"
                       title="סמן כהוצאה קבועה"
                     >
-                      📌
+                      <Pin className="w-4 h-4" strokeWidth={1.5} />
                     </button>
                   </td>
                 </tr>
@@ -291,7 +293,7 @@ export default function TransactionsPage({ month }: Props) {
           <div className="card text-center py-12 text-gray-500">טוען...</div>
         ) : !txnData?.data?.length ? (
           <div className="card text-center py-12 text-gray-500">
-            <div className="text-4xl mb-3">🧾</div>
+            <div className="text-gray-300 mb-3"><Receipt className="w-10 h-10 mx-auto" strokeWidth={1.5} /></div>
             <p>אין עסקאות להצגה</p>
           </div>
         ) : (
@@ -321,7 +323,7 @@ export default function TransactionsPage({ month }: Props) {
                     >
                       <option value="">ללא קטגוריה</option>
                       {expenseCategories.map((c: Category) => (
-                        <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                        <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
                     </select>
                   ) : (
@@ -333,7 +335,7 @@ export default function TransactionsPage({ month }: Props) {
                         color: txn.category_color || '#6b7280',
                       }}
                     >
-                      {txn.category_icon && <span>{txn.category_icon}</span>}
+                      {txn.category_icon && <CategoryIcon icon={txn.category_icon} className="w-3.5 h-3.5" strokeWidth={1.5} />}
                       {txn.category_name || 'לא מסווג'}
                     </button>
                   )}
@@ -342,7 +344,7 @@ export default function TransactionsPage({ month }: Props) {
                     className="text-gray-400 hover:text-blue-600 p-1"
                     title="סמן כהוצאה קבועה"
                   >
-                    📌
+                    <Pin className="w-4 h-4" strokeWidth={1.5} />
                   </button>
                 </div>
               </div>
@@ -360,12 +362,12 @@ export default function TransactionsPage({ month }: Props) {
       {similarSuggestion && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg mx-4 max-h-[80vh] flex flex-col">
-            <h3 className="text-lg font-bold mb-2">🔄 נמצאו עסקאות דומות</h3>
+            <h3 className="text-lg font-bold mb-2 flex items-center gap-2"><RefreshCw className="w-5 h-5" strokeWidth={1.5} /> נמצאו עסקאות דומות</h3>
             <p className="text-sm text-gray-600 mb-1">
               נמצאו <strong>{similarSuggestion.transactions.length}</strong> עסקאות נוספות עם השם <strong>"{similarSuggestion.description}"</strong>
             </p>
             <p className="text-sm text-gray-600 mb-4">
-              לסווג גם אותן ל{similarSuggestion.categoryIcon && <span>{similarSuggestion.categoryIcon} </span>}
+              לסווג גם אותן ל{similarSuggestion.categoryIcon && <CategoryIcon icon={similarSuggestion.categoryIcon} className="w-4 h-4 inline-block mx-0.5" strokeWidth={1.5} />}
               <strong>{similarSuggestion.categoryName}</strong>?
             </p>
 
@@ -399,8 +401,9 @@ export default function TransactionsPage({ month }: Props) {
                       <span>{formatDateHebrew(txn.date)}</span>
                       <span className="font-mono">{formatNIS(txn.charged_amount)}</span>
                       {txn.category_name ? (
-                        <span className="text-orange-600">
-                          {txn.category_icon} {txn.category_name}
+                        <span className="text-orange-600 inline-flex items-center gap-1">
+                          {txn.category_icon && <CategoryIcon icon={txn.category_icon} className="w-3 h-3" strokeWidth={1.5} />}
+                          {txn.category_name}
                         </span>
                       ) : (
                         <span className="text-gray-400">לא מסווג</span>
@@ -439,7 +442,7 @@ export default function TransactionsPage({ month }: Props) {
       {fixedModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-bold mb-4">📌 הוספת הוצאה קבועה</h3>
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2"><Pin className="w-5 h-5" strokeWidth={1.5} /> הוספת הוצאה קבועה</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">שם</label>
@@ -479,7 +482,7 @@ export default function TransactionsPage({ month }: Props) {
                 >
                   <option value="">ללא קטגוריה</option>
                   {expenseCategories.map((c: Category) => (
-                    <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                    <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
               </div>

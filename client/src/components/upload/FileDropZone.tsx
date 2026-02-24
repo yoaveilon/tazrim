@@ -1,5 +1,6 @@
 import { useDropzone } from 'react-dropzone';
 import clsx from 'clsx';
+import { FileText, Loader } from 'lucide-react';
 
 interface Props {
   onFileSelected: (file: File) => void;
@@ -32,10 +33,10 @@ export default function FileDropZone({ onFileSelected, isLoading }: Props) {
       )}
     >
       <input {...getInputProps()} />
-      <div className="text-5xl mb-4">📄</div>
+      <div className="text-gray-300 mb-4"><FileText className="w-12 h-12 mx-auto" strokeWidth={1.5} /></div>
       {isLoading ? (
         <div>
-          <div className="animate-spin text-3xl mb-2">⏳</div>
+          <div className="text-primary-500 mb-2"><Loader className="w-8 h-8 mx-auto animate-spin" strokeWidth={1.5} /></div>
           <p className="text-gray-600">מפענח את הקובץ...</p>
         </div>
       ) : isDragActive ? (

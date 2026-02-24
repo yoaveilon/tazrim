@@ -119,7 +119,7 @@ export default function RulesPage() {
               >
                 <option value="">בחר קטגוריה</option>
                 {expenseCategories.map((c: Category) => (
-                  <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
             </div>
@@ -154,7 +154,7 @@ export default function RulesPage() {
                 >
                   <option value="">סווג...</option>
                   {expenseCategories.map((c: Category) => (
-                    <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                    <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
               </div>

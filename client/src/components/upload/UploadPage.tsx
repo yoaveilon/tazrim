@@ -20,7 +20,7 @@ export default function UploadPage() {
       setParseResult(result);
       setStep('preview');
       if (result.errors.length > 0) {
-        toast(`${result.errors.length} שורות נכשלו בפענוח`, { icon: '⚠️' });
+        toast(`${result.errors.length} שורות נכשלו בפענוח`, { icon: '⚠' });
       }
     },
     onError: (err: any) => {

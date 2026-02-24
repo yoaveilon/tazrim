@@ -224,7 +224,7 @@ export default function FixedExpensesPage({ month }: Props) {
               >
                 <option value="">ללא</option>
                 {expenseCategories.map((c: Category) => (
-                  <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
             </div>
@@ -302,7 +302,7 @@ export default function FixedExpensesPage({ month }: Props) {
                         >
                           <option value="">ללא קטגוריה</option>
                           {expenseCategories.map((c: Category) => (
-                            <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                            <option key={c.id} value={c.id}>{c.name}</option>
                           ))}
                         </select>
                       ) : (
@@ -336,7 +336,7 @@ export default function FixedExpensesPage({ month }: Props) {
                           {formatNIS(paidAmount || e.amount)}
                         </span>
                         {isPaid && (
-                          <span className="block text-xs text-green-600">שולם ✓</span>
+                          <span className="text-xs text-green-600 flex items-center gap-0.5">שולם <Check className="w-3 h-3" strokeWidth={2} /></span>
                         )}
                       </div>
                     )}

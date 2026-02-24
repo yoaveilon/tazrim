@@ -7,6 +7,7 @@ import {
 } from '../../services/api';
 import { formatNIS } from '../../utils/currency';
 import type { IncomeSource, IncomeRecord, VariableIncomeItem } from 'shared/src/types';
+import CategoryIcon from '../ui/CategoryIcon';
 
 interface Props {
   month: string;
@@ -220,7 +221,7 @@ export default function IncomePage({ month }: Props) {
                     <span className="text-xs text-gray-400">{new Date(item.date).toLocaleDateString('he-IL')}</span>
                     {item.category_name && (
                       <span className="text-xs px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600">
-                        {item.category_icon && <span className="ml-1">{item.category_icon}</span>}
+                        {item.category_icon && <CategoryIcon icon={item.category_icon} className="w-3 h-3 ml-1 inline-block" strokeWidth={1.5} />}
                         {item.category_name}
                       </span>
                     )}
