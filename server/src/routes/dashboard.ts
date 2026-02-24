@@ -229,13 +229,29 @@ router.get('/cashflow', (req: Request, res: Response) => {
     weekNumCounter++;
   }
 
-  // Prepared statement for weekly actual per category
+  // Prepared statements for weekly data per category
+  // NOTE: For weekly breakdown WITHIN a month, we use `date` (actual transaction date)
+  // not `processed_date` (which is always the 1st of the month for billing purposes).
+  // The month filter still uses COALESCE(processed_date, date) to pick the right month.
   const weeklyActualStmt = db.prepare(`
     SELECT COALESCE(SUM(charged_amount), 0) as total
     FROM transactions
     WHERE user_id = ? AND charged_amount > 0
       AND category_id = ?
-      AND COALESCE(processed_date, date) >= ? AND COALESCE(processed_date, date) <= ?
+      AND strftime('%Y-%m', COALESCE(processed_date, date)) = ?
+      AND CAST(strftime('%d', date) AS INTEGER) >= ?
+      AND CAST(strftime('%d', date) AS INTEGER) <= ?
+  `);
+
+  const weeklyTransactionsStmt = db.prepare(`
+    SELECT id, date, description, charged_amount
+    FROM transactions
+    WHERE user_id = ? AND charged_amount > 0
+      AND category_id = ?
+      AND strftime('%Y-%m', COALESCE(processed_date, date)) = ?
+      AND CAST(strftime('%d', date) AS INTEGER) >= ?
+      AND CAST(strftime('%d', date) AS INTEGER) <= ?
+    ORDER BY date DESC
   `);
 
   // ---- 5. BUILD CATEGORY FORECASTS ----
@@ -289,14 +305,21 @@ router.get('/cashflow', (req: Request, res: Response) => {
     // Weekly breakdown for this category
     const weeklyForecastPerWeek = forecast > 0 ? Math.round(forecast / weekRanges.length) : 0;
     const weeklyBreakdown = weekRanges.map((week) => {
-      const row = weeklyActualStmt.get(userId, cat.id, week.startDate, week.endDate) as any;
+      const row = weeklyActualStmt.get(userId, cat.id, month, week.startDay, week.endDay) as any;
       const weekActual = row.total;
+      const transactions = weeklyTransactionsStmt.all(userId, cat.id, month, week.startDay, week.endDay) as any[];
       return {
         label: week.label,
         startDay: week.startDay,
         endDay: week.endDay,
         actual: weekActual,
         remaining: Math.max(0, weeklyForecastPerWeek - weekActual),
+        transactions: transactions.map((t: any) => ({
+          id: t.id,
+          date: t.date,
+          description: t.description,
+          charged_amount: t.charged_amount,
+        })),
       };
     });
 

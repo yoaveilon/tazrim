@@ -275,6 +275,7 @@ export default function DashboardPage({ month }: Props) {
 // --- Sub-component: Category card ---
 function CategoryCard({ cat, onUpdateForecast }: { cat: CategoryForecast; onUpdateForecast: (budget: number | null) => void }) {
   const [expanded, setExpanded] = useState(false);
+  const [expandedWeeks, setExpandedWeeks] = useState<Set<number>>(new Set());
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
 
@@ -285,6 +286,15 @@ function CategoryCard({ cat, onUpdateForecast }: { cat: CategoryForecast; onUpda
   // Determine current week
   const today = new Date();
   const currentDay = today.getDate();
+
+  function toggleWeek(idx: number) {
+    setExpandedWeeks(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  }
 
   function startEditing(e: React.MouseEvent) {
     e.stopPropagation();
@@ -406,31 +416,56 @@ function CategoryCard({ cat, onUpdateForecast }: { cat: CategoryForecast; onUpda
 
           {cat.weeklyBreakdown.map((week, idx) => {
             const isCurrentWeek = currentDay >= week.startDay && currentDay <= week.endDay;
+            const isWeekExpanded = expandedWeeks.has(idx);
+            const hasTransactions = week.transactions && week.transactions.length > 0;
             return (
-              <div
-                key={idx}
-                className={`px-5 py-3 flex items-center border-b border-gray-50 last:border-0 ${isCurrentWeek ? 'bg-gray-50/50' : ''}`}
-              >
-                <div className="flex-1 text-right">
-                  {isCurrentWeek ? (
-                    <span className="inline-block bg-gray-200 text-gray-700 text-xs font-semibold px-3 py-1 rounded-full">
-                      {week.label}
-                    </span>
-                  ) : (
-                    <span className="text-sm text-gray-700 font-medium">{week.label}</span>
-                  )}
-                </div>
-                <span className="w-24 text-center font-mono text-sm font-bold text-gray-900">
-                  {formatNIS(week.actual)}
-                </span>
-                <span className="w-24 text-center font-mono text-sm text-gray-400">
-                  {formatNIS(week.remaining)}
-                </span>
-                <span className="w-6 flex justify-center">
-                  <svg className="w-3.5 h-3.5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </span>
+              <div key={idx}>
+                <button
+                  onClick={() => hasTransactions && toggleWeek(idx)}
+                  className={`w-full px-5 py-3 flex items-center border-b border-gray-50 ${isCurrentWeek ? 'bg-gray-50/50' : ''} ${hasTransactions ? 'cursor-pointer hover:bg-gray-50/30' : 'cursor-default'}`}
+                >
+                  <div className="flex-1 text-right">
+                    {isCurrentWeek ? (
+                      <span className="inline-block bg-gray-200 text-gray-700 text-xs font-semibold px-3 py-1 rounded-full">
+                        {week.label}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-gray-700 font-medium">{week.label}</span>
+                    )}
+                  </div>
+                  <span className="w-24 text-center font-mono text-sm font-bold text-gray-900">
+                    {formatNIS(week.actual)}
+                  </span>
+                  <span className="w-24 text-center font-mono text-sm text-gray-400">
+                    {formatNIS(week.remaining)}
+                  </span>
+                  <span className="w-6 flex justify-center">
+                    {hasTransactions && (
+                      <svg className={`w-3.5 h-3.5 text-gray-300 transition-transform duration-200 ${isWeekExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    )}
+                  </span>
+                </button>
+
+                {/* Transactions list for this week */}
+                {isWeekExpanded && week.transactions && (
+                  <div className="bg-gray-50/40 border-b border-gray-50">
+                    {week.transactions.map((txn) => (
+                      <div key={txn.id} className="px-7 py-2 flex items-center justify-between text-sm border-b border-gray-50/80 last:border-0">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className="text-xs text-gray-400 font-mono shrink-0">
+                            {new Date(txn.date).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}
+                          </span>
+                          <span className="text-gray-700 truncate">{txn.description}</span>
+                        </div>
+                        <span className="font-mono text-sm text-gray-900 font-medium mr-2 shrink-0">
+                          {formatNIS(txn.charged_amount)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}

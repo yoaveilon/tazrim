@@ -252,12 +252,20 @@ export interface CashFlowData {
   remainingToSpend: number;
 }
 
+export interface WeekTransaction {
+  id: number;
+  date: string;
+  description: string;
+  charged_amount: number;
+}
+
 export interface CategoryWeekData {
   label: string;
   startDay: number;
   endDay: number;
   actual: number;
   remaining: number;
+  transactions: WeekTransaction[];
 }
 
 export interface CategoryForecast {
