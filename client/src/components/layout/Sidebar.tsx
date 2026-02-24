@@ -49,10 +49,19 @@ export default function Sidebar({ isOpen, onClose }: Props) {
         {/* Logo */}
         <div className="px-5 pt-6 pb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-accent-blue flex items-center justify-center text-white font-bold text-lg shadow-sm">
-              ת
-            </div>
-            <span className="text-xl font-bold text-gray-900 tracking-tight">Tazrim</span>
+            {/* flow. logo */}
+            <svg width="32" height="32" viewBox="0 0 32 32" className="shrink-0">
+              <circle cx="11" cy="16" r="10" fill="#7C5CFC"/>
+              <path d="M21 6 A10 10 0 0 1 21 26" fill="#7C5CFC"/>
+            </svg>
+            <span className="text-xl font-bold text-gray-900 tracking-tight">
+              <span className="relative">
+                f
+                <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#7C5CFC]" />
+              </span>
+              low
+              <span className="text-[#7C5CFC]">.</span>
+            </span>
           </div>
           <button
             onClick={onClose}
