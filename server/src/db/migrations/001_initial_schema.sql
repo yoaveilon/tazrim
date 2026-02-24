@@ -113,22 +113,22 @@ CREATE TABLE IF NOT EXISTS upload_history (
 -- Seed default categories
 -- ============================================================
 INSERT OR IGNORE INTO categories (name, icon, color, is_expense, sort_order) VALUES
-    ('מזון',       'ShoppingCart', '#22C55E', 1, 1),
-    ('מסעדות',     'UtensilsCrossed', '#F97316', 1, 2),
-    ('דלק',        'Fuel', '#EF4444', 1, 3),
-    ('תקשורת',     'Smartphone', '#3B82F6', 1, 4),
-    ('ביגוד',      'Shirt', '#A855F7', 1, 5),
+    ('מזון',       'ShoppingCart', '#00D68F', 1, 1),
+    ('מסעדות',     'UtensilsCrossed', '#FF6B35', 1, 2),
+    ('דלק',        'Fuel', '#FF6B6B', 1, 3),
+    ('תקשורת',     'Smartphone', '#7C5CFC', 1, 4),
+    ('ביגוד',      'Shirt', '#6C5CE7', 1, 5),
     ('בריאות',     'Hospital', '#EC4899', 1, 6),
     ('חינוך',      'BookOpen', '#14B8A6', 1, 7),
-    ('בילויים',    'Clapperboard', '#F59E0B', 1, 8),
-    ('תחבורה',     'Bus', '#6366F1', 1, 9),
+    ('בילויים',    'Clapperboard', '#FFC048', 1, 8),
+    ('תחבורה',     'Bus', '#5A4BD1', 1, 9),
     ('ביטוח',      'Shield', '#8B5CF6', 1, 10),
     ('דיור',       'Home', '#06B6D4', 1, 11),
     ('מנויים',     'RefreshCw', '#D946EF', 1, 12),
     ('אחר',        'Package', '#6B7280', 1, 13),
     ('משכורת',     'Coins', '#10B981', 0, 1),
     ('פרילנס',     'Briefcase', '#0EA5E9', 0, 2),
-    ('השקעות',     'TrendingUp', '#F59E0B', 0, 3);
+    ('השקעות',     'TrendingUp', '#FFC048', 0, 3);
 
 -- ============================================================
 -- Seed default classification rules

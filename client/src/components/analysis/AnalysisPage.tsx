@@ -275,7 +275,7 @@ export default function AnalysisPage({ month }: Props) {
                 <PolarGrid stroke="#e5e7eb" />
                 <PolarAngleAxis dataKey="name" tick={{ fontSize: 11, fill: '#6b7280' }} />
                 <PolarRadiusAxis tick={false} axisLine={false} />
-                <Radar name="הוצאות" dataKey="actual" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.3} strokeWidth={2} />
+                <Radar name="הוצאות" dataKey="actual" stroke="#7C5CFC" fill="#7C5CFC" fillOpacity={0.3} strokeWidth={2} />
                 <Tooltip content={<ChartTooltip />} />
               </RadarChart>
             </ResponsiveContainer>
@@ -315,9 +315,9 @@ export default function AnalysisPage({ month }: Props) {
               />
               <Tooltip content={<ChartTooltip />} labelFormatter={(label) => formatMonthHebrew(label)} />
               <Legend content={<RTLLegend />} />
-              <Line type="monotone" dataKey="income" name="הכנסות" stroke="#22C55E" strokeWidth={2.5} dot={{ r: 4, fill: '#22C55E' }} activeDot={{ r: 6 }} />
-              <Line type="monotone" dataKey="expenses" name="הוצאות" stroke="#EF4444" strokeWidth={2.5} dot={{ r: 4, fill: '#EF4444' }} activeDot={{ r: 6 }} />
-              <Line type="monotone" dataKey="balance" name="מאזן" stroke="#3B82F6" strokeWidth={2} strokeDasharray="6 4" dot={{ r: 3, fill: '#3B82F6' }} />
+              <Line type="monotone" dataKey="income" name="הכנסות" stroke="#00D68F" strokeWidth={2.5} dot={{ r: 4, fill: '#00D68F' }} activeDot={{ r: 6 }} />
+              <Line type="monotone" dataKey="expenses" name="הוצאות" stroke="#FF6B6B" strokeWidth={2.5} dot={{ r: 4, fill: '#FF6B6B' }} activeDot={{ r: 6 }} />
+              <Line type="monotone" dataKey="balance" name="מאזן" stroke="#7C5CFC" strokeWidth={2} strokeDasharray="6 4" dot={{ r: 3, fill: '#7C5CFC' }} />
             </LineChart>
           </ResponsiveContainer>
         ) : (

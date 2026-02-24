@@ -9,8 +9,8 @@ import { AlertTriangle } from 'lucide-react';
 import CategoryIcon, { PRESET_ICON_NAMES, getIconComponent } from '../ui/CategoryIcon';
 
 const PRESET_COLORS = [
-  '#22C55E', '#F97316', '#EF4444', '#3B82F6', '#A855F7',
-  '#EC4899', '#14B8A6', '#F59E0B', '#6366F1', '#8B5CF6',
+  '#00D68F', '#FF6B35', '#FF6B6B', '#7C5CFC', '#6C5CE7',
+  '#EC4899', '#14B8A6', '#FFC048', '#5A4BD1', '#8B5CF6',
   '#06B6D4', '#D946EF', '#6B7280', '#10B981', '#0EA5E9',
   '#E11D48', '#84CC16', '#F43F5E',
 ];

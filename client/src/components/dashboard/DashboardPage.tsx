@@ -121,7 +121,7 @@ export default function DashboardPage({ month }: Props) {
                   fill="none"
                   strokeWidth="10"
                   strokeLinecap="round"
-                  stroke={spentPercent > 90 ? '#EF4444' : spentPercent > 70 ? '#F97316' : '#4361EE'}
+                  stroke={spentPercent > 90 ? '#FF6B6B' : spentPercent > 70 ? '#FF6B35' : '#6C5CE7'}
                   strokeDasharray={`${spentPercent * 2.64} ${264 - spentPercent * 2.64}`}
                   className="transition-all duration-700 ease-out"
                 />
@@ -320,10 +320,10 @@ function CategoryCard({ cat, onUpdateForecast }: { cat: CategoryForecast; onUpda
 
   // Progress bar color: purple under budget, orange when at/over budget (within ₪5)
   const barColor = isAtOrOverBudget
-    ? '#F97316'
+    ? '#FF6B35'
     : noForecast
       ? '#D1D5DB'
-      : '#4361EE';
+      : '#6C5CE7';
 
   return (
     <div className="bg-white rounded-3xl border border-gray-100/80 shadow-card hover:shadow-card-hover transition-all duration-200 overflow-hidden">
