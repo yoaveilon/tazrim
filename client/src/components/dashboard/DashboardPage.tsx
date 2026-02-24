@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { getCashFlow, setForecastOverride, getIncomeRecords, updateIncomeRecord, getVariableIncome } from '../../services/api';
+import { getCashFlow, setForecastOverride, getIncomeRecords, updateIncomeRecord, getVariableIncome, getCategories, updateTransaction } from '../../services/api';
 import { formatNIS } from '../../utils/currency';
 import { formatMonthHebrew } from '../../utils/date';
-import type { CategoryForecast, IncomeRecord } from 'shared/src/types';
-import { ChevronDown, MoreVertical, Check, X } from 'lucide-react';
+import type { CategoryForecast, IncomeRecord, Category } from 'shared/src/types';
+import { ChevronDown, MoreVertical, Check, X, ArrowLeftRight } from 'lucide-react';
 
 interface Props {
   month: string;
@@ -30,6 +30,13 @@ export default function DashboardPage({ month }: Props) {
     queryKey: ['variable-income', month],
     queryFn: () => getVariableIncome(month),
   });
+
+  const { data: categories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: getCategories,
+  });
+
+  const expenseCategories = categories?.filter((c: Category) => c.is_expense) || [];
 
   const queryClient = useQueryClient();
 
@@ -263,6 +270,7 @@ export default function DashboardPage({ month }: Props) {
                 key={cat.category_id}
                 cat={cat}
                 onUpdateForecast={(budget) => overrideMutation.mutate({ categoryId: cat.category_id, budget })}
+                expenseCategories={expenseCategories}
               />
             ))}
           </div>
@@ -278,11 +286,25 @@ export default function DashboardPage({ month }: Props) {
 }
 
 // --- Sub-component: Category card ---
-function CategoryCard({ cat, onUpdateForecast }: { cat: CategoryForecast; onUpdateForecast: (budget: number | null) => void }) {
+function CategoryCard({ cat, onUpdateForecast, expenseCategories }: { cat: CategoryForecast; onUpdateForecast: (budget: number | null) => void; expenseCategories: Category[] }) {
   const [expanded, setExpanded] = useState(false);
   const [expandedWeeks, setExpandedWeeks] = useState<Set<number>>(new Set());
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
+  const [editingTxnId, setEditingTxnId] = useState<number | null>(null);
+
+  const queryClient = useQueryClient();
+  const reclassifyMutation = useMutation({
+    mutationFn: ({ id, category_id }: { id: number; category_id: number }) =>
+      updateTransaction(id, { category_id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cashflow'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      setEditingTxnId(null);
+      toast.success('הקטגוריה עודכנה');
+    },
+    onError: () => toast.error('שגיאה בעדכון'),
+  });
 
   const percent = cat.forecast > 0 ? Math.min(100, Math.round((cat.actual / cat.forecast) * 100)) : (cat.actual > 0 ? 100 : 0);
   const isAtOrOverBudget = cat.difference <= 5; // within ₪5 or over
@@ -454,11 +476,43 @@ function CategoryCard({ cat, onUpdateForecast }: { cat: CategoryForecast; onUpda
                           <span className="text-xs text-gray-400 font-mono shrink-0">
                             {new Date(txn.date).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}
                           </span>
-                          <span className="text-gray-700 truncate">{txn.description}</span>
+                          {editingTxnId === txn.id ? (
+                            <select
+                              autoFocus
+                              className="input py-1 text-xs max-w-[160px]"
+                              defaultValue={cat.category_id}
+                              onChange={(e) => {
+                                if (e.target.value) {
+                                  reclassifyMutation.mutate({
+                                    id: txn.id,
+                                    category_id: parseInt(e.target.value),
+                                  });
+                                }
+                              }}
+                              onBlur={() => setEditingTxnId(null)}
+                            >
+                              {expenseCategories.map((c) => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <span className="text-gray-700 truncate">{txn.description}</span>
+                          )}
                         </div>
-                        <span className="font-mono text-sm text-gray-900 font-medium mr-2 shrink-0">
-                          {formatNIS(txn.charged_amount)}
-                        </span>
+                        <div className="flex items-center gap-1.5 shrink-0 mr-2">
+                          <span className="font-mono text-sm text-gray-900 font-medium">
+                            {formatNIS(txn.charged_amount)}
+                          </span>
+                          {editingTxnId !== txn.id && (
+                            <button
+                              onClick={() => setEditingTxnId(txn.id)}
+                              className="text-gray-300 hover:text-primary-500 transition-colors"
+                              title="שנה קטגוריה"
+                            >
+                              <ArrowLeftRight className="w-3.5 h-3.5" strokeWidth={1.5} />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
