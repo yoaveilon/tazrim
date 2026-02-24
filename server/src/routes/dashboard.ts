@@ -309,21 +309,60 @@ router.get('/cashflow', (req: Request, res: Response) => {
       return row.total as number;
     });
 
-    // Step 2: redistribute budget only among weeks with spending
+    // Step 2: base budget per week (split among weeks with spending)
     const weeksWithSpending = weekActuals.filter(a => a > 0).length;
     const effectiveWeeks = weeksWithSpending > 0 ? weeksWithSpending : weekRanges.length;
-    const weeklyForecastPerWeek = forecast > 0 ? Math.round(forecast / effectiveWeeks) : 0;
+    const baseBudgetPerWeek = forecast > 0 ? Math.round(forecast / effectiveWeeks) : 0;
 
-    // Step 3: build breakdown — weeks with no spending get 0 remaining
+    // Step 3: carry over leftover from past weeks to future weeks
+    // Past weeks = weeks whose endDay < today's day of month
+    const todayDay = dayjs().date();
+    let carryOver = 0;
+    const pastWeekLeftovers: number[] = [];
+
+    for (let i = 0; i < weekRanges.length; i++) {
+      const isPastWeek = weekRanges[i].endDay < todayDay;
+      if (isPastWeek && weekActuals[i] > 0) {
+        const leftover = Math.max(0, baseBudgetPerWeek - weekActuals[i]);
+        carryOver += leftover;
+        pastWeekLeftovers.push(leftover);
+      } else {
+        pastWeekLeftovers.push(0);
+      }
+    }
+
+    // Count future weeks (with spending or not yet passed) to distribute carry-over
+    const futureWeeksWithSpending = weekRanges.filter(
+      (w, i) => w.endDay >= todayDay && weekActuals[i] > 0
+    ).length;
+    const futureWeeksCount = weekRanges.filter(w => w.endDay >= todayDay).length;
+    const distributeToWeeks = futureWeeksWithSpending > 0 ? futureWeeksWithSpending : futureWeeksCount;
+    const carryOverPerWeek = distributeToWeeks > 0 ? Math.round(carryOver / distributeToWeeks) : 0;
+
+    // Step 4: build breakdown with carry-over applied to future weeks
     const weeklyBreakdown = weekRanges.map((week, i) => {
       const weekActual = weekActuals[i];
+      const isPastWeek = week.endDay < todayDay;
       const transactions = weeklyTransactionsStmt.all(userId, cat.id, month, week.startDay, week.endDay) as any[];
+
+      let remaining: number;
+      if (weekActual === 0) {
+        // No spending — no remaining shown
+        remaining = 0;
+      } else if (isPastWeek) {
+        // Past week — show remaining without carry-over (already donated)
+        remaining = Math.max(0, baseBudgetPerWeek - weekActual);
+      } else {
+        // Current/future week — gets base budget + share of carry-over
+        remaining = Math.max(0, (baseBudgetPerWeek + carryOverPerWeek) - weekActual);
+      }
+
       return {
         label: week.label,
         startDay: week.startDay,
         endDay: week.endDay,
         actual: weekActual,
-        remaining: weekActual > 0 ? Math.max(0, weeklyForecastPerWeek - weekActual) : 0,
+        remaining,
         transactions: transactions.map((t: any) => ({
           id: t.id,
           date: t.date,

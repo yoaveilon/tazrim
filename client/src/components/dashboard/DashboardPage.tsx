@@ -280,7 +280,7 @@ function CategoryCard({ cat, onUpdateForecast }: { cat: CategoryForecast; onUpda
   const [editValue, setEditValue] = useState('');
 
   const percent = cat.forecast > 0 ? Math.min(100, Math.round((cat.actual / cat.forecast) * 100)) : (cat.actual > 0 ? 100 : 0);
-  const isOver = cat.difference < 0;
+  const isAtOrOverBudget = cat.difference <= 5; // within ₪5 or over
   const noForecast = cat.monthsOfData === 0;
 
   // Determine current week
@@ -317,8 +317,8 @@ function CategoryCard({ cat, onUpdateForecast }: { cat: CategoryForecast; onUpda
     if (e.key === 'Escape') setIsEditing(false);
   }
 
-  // Progress bar color: purple under budget, orange when over
-  const barColor = isOver
+  // Progress bar color: purple under budget, orange when at/over budget (within ₪5)
+  const barColor = isAtOrOverBudget
     ? '#F97316'
     : noForecast
       ? '#D1D5DB'
@@ -372,7 +372,7 @@ function CategoryCard({ cat, onUpdateForecast }: { cat: CategoryForecast; onUpda
           </div>
           <div className="text-right">
             <p className="text-xs text-gray-400 mb-0.5">יצא</p>
-            <p className={`text-xl font-bold ${isOver ? 'text-red-600' : 'text-gray-900'}`}>
+            <p className={`text-xl font-bold ${isAtOrOverBudget ? 'text-orange-500' : 'text-gray-900'}`}>
               {formatNIS(cat.actual)}
             </p>
           </div>
