@@ -254,7 +254,11 @@ export default function DashboardPage({ month }: Props) {
         </div>
         {cashflow?.categoryForecasts?.length ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {cashflow.categoryForecasts.map((cat: CategoryForecast) => (
+            {[...cashflow.categoryForecasts].sort((a: CategoryForecast, b: CategoryForecast) => {
+              const aOver = a.difference <= 5 ? 1 : 0;
+              const bOver = b.difference <= 5 ? 1 : 0;
+              return aOver - bOver;
+            }).map((cat: CategoryForecast) => (
               <CategoryCard
                 key={cat.category_id}
                 cat={cat}
