@@ -470,51 +470,56 @@ function CategoryCard({ cat, onUpdateForecast, expenseCategories }: { cat: Categ
                 {/* Transactions list for this week */}
                 {isWeekExpanded && week.transactions && (
                   <div className="bg-gray-50/40 border-b border-gray-50">
-                    {week.transactions.map((txn) => (
-                      <div key={txn.id} className="px-7 py-2 flex items-center justify-between text-sm border-b border-gray-50/80 last:border-0">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <span className="text-xs text-gray-400 font-mono shrink-0">
-                            {new Date(txn.date).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}
-                          </span>
-                          {editingTxnId === txn.id ? (
-                            <select
-                              autoFocus
-                              className="input py-1 text-xs max-w-[160px]"
-                              defaultValue={cat.category_id}
-                              onChange={(e) => {
-                                if (e.target.value) {
-                                  reclassifyMutation.mutate({
-                                    id: txn.id,
-                                    category_id: parseInt(e.target.value),
-                                  });
-                                }
-                              }}
-                              onBlur={() => setEditingTxnId(null)}
-                            >
-                              {expenseCategories.map((c) => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
-                              ))}
-                            </select>
-                          ) : (
-                            <span className="text-gray-700 truncate">{txn.description}</span>
-                          )}
+                    {week.transactions.map((txn) => {
+                      const isFixedExpense = txn.id < 0;
+                      return (
+                        <div key={txn.id} className="px-7 py-2 flex items-center justify-between text-sm border-b border-gray-50/80 last:border-0">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <span className="text-xs text-gray-400 font-mono shrink-0">
+                              {new Date(txn.date).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}
+                            </span>
+                            {!isFixedExpense && editingTxnId === txn.id ? (
+                              <select
+                                autoFocus
+                                className="input py-1 text-xs max-w-[160px]"
+                                defaultValue={cat.category_id}
+                                onChange={(e) => {
+                                  if (e.target.value) {
+                                    reclassifyMutation.mutate({
+                                      id: txn.id,
+                                      category_id: parseInt(e.target.value),
+                                    });
+                                  }
+                                }}
+                                onBlur={() => setEditingTxnId(null)}
+                              >
+                                {expenseCategories.map((c) => (
+                                  <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <span className={`truncate ${isFixedExpense ? 'text-primary-500 font-medium' : 'text-gray-700'}`}>
+                                {txn.description}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0 mr-2">
+                            <span className="font-mono text-sm text-gray-900 font-medium">
+                              {formatNIS(txn.charged_amount)}
+                            </span>
+                            {!isFixedExpense && editingTxnId !== txn.id && (
+                              <button
+                                onClick={() => setEditingTxnId(txn.id)}
+                                className="text-gray-300 hover:text-primary-500 transition-colors"
+                                title="שנה קטגוריה"
+                              >
+                                <ArrowLeftRight className="w-3.5 h-3.5" strokeWidth={1.5} />
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1.5 shrink-0 mr-2">
-                          <span className="font-mono text-sm text-gray-900 font-medium">
-                            {formatNIS(txn.charged_amount)}
-                          </span>
-                          {editingTxnId !== txn.id && (
-                            <button
-                              onClick={() => setEditingTxnId(txn.id)}
-                              className="text-gray-300 hover:text-primary-500 transition-colors"
-                              title="שנה קטגוריה"
-                            >
-                              <ArrowLeftRight className="w-3.5 h-3.5" strokeWidth={1.5} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

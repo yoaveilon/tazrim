@@ -254,6 +254,14 @@ router.get('/cashflow', (req: Request, res: Response) => {
     ORDER BY date DESC
   `);
 
+  // Prepared statement: fixed expense payments per category (for weekly breakdown)
+  const fixedPaymentsStmt = db.prepare(`
+    SELECT fep.id, fe.name as description, fep.amount_paid as charged_amount, fe.billing_day
+    FROM fixed_expense_payments fep
+    JOIN fixed_expenses fe ON fep.fixed_expense_id = fe.id
+    WHERE fep.month = ? AND fep.user_id = ? AND fe.category_id = ?
+  `);
+
   // ---- 5. BUILD CATEGORY FORECASTS ----
   // Collect all expense categories that have either history or actuals
   const allCategories = db.prepare(
@@ -303,10 +311,20 @@ router.get('/cashflow', (req: Request, res: Response) => {
     if (forecast === 0 && actual === 0) continue;
 
     // Weekly breakdown for this category
-    // Step 1: get actuals per week
+    // Fetch paid fixed expenses for this category to inject into weekly breakdown
+    const fixedPayments = fixedPaymentsStmt.all(month, userId, cat.id) as any[];
+
+    // Step 1: get actuals per week (credit card transactions only)
     const weekActuals = weekRanges.map((week) => {
       const row = weeklyActualStmt.get(userId, cat.id, month, week.startDay, week.endDay) as any;
-      return row.total as number;
+      let total = row.total as number;
+      // Add fixed expense payments that fall in this week (by billing_day)
+      for (const fp of fixedPayments) {
+        if (fp.billing_day >= week.startDay && fp.billing_day <= week.endDay) {
+          total += fp.charged_amount;
+        }
+      }
+      return total;
     });
 
     // Step 2: base budget per week (split among weeks with spending)
@@ -354,18 +372,35 @@ router.get('/cashflow', (req: Request, res: Response) => {
         remaining = Math.max(0, (baseBudgetPerWeek + carryOverPerWeek) - weekActual);
       }
 
+      // Merge fixed expense payments into this week's transactions
+      const txnList = transactions.map((t: any) => ({
+        id: t.id,
+        date: t.date,
+        description: t.description,
+        charged_amount: t.charged_amount,
+      }));
+
+      for (const fp of fixedPayments) {
+        if (fp.billing_day >= week.startDay && fp.billing_day <= week.endDay) {
+          txnList.push({
+            id: -fp.id, // Negative ID to distinguish from regular transactions
+            date: `${month}-${String(fp.billing_day).padStart(2, '0')}`,
+            description: `קבועה: ${fp.description}`,
+            charged_amount: fp.charged_amount,
+          });
+        }
+      }
+
+      // Sort by date descending
+      txnList.sort((a: any, b: any) => b.date.localeCompare(a.date));
+
       return {
         label: week.label,
         startDay: week.startDay,
         endDay: week.endDay,
         actual: weekActual,
         remaining,
-        transactions: transactions.map((t: any) => ({
-          id: t.id,
-          date: t.date,
-          description: t.description,
-          charged_amount: t.charged_amount,
-        })),
+        transactions: txnList,
       };
     });
 
