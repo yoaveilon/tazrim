@@ -317,12 +317,12 @@ function CategoryCard({ cat, onUpdateForecast }: { cat: CategoryForecast; onUpda
     if (e.key === 'Escape') setIsEditing(false);
   }
 
-  // Progress bar color
+  // Progress bar color: purple under budget, orange when over
   const barColor = isOver
-    ? '#EF4444'
+    ? '#F97316'
     : noForecast
       ? '#D1D5DB'
-      : percent > 90 ? '#EF4444' : percent > 70 ? '#F97316' : '#9CA3AF';
+      : '#4361EE';
 
   return (
     <div className="bg-white rounded-3xl border border-gray-100/80 shadow-card hover:shadow-card-hover transition-all duration-200 overflow-hidden">

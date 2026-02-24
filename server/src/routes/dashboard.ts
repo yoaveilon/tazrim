@@ -303,17 +303,27 @@ router.get('/cashflow', (req: Request, res: Response) => {
     if (forecast === 0 && actual === 0) continue;
 
     // Weekly breakdown for this category
-    const weeklyForecastPerWeek = forecast > 0 ? Math.round(forecast / weekRanges.length) : 0;
-    const weeklyBreakdown = weekRanges.map((week) => {
+    // Step 1: get actuals per week
+    const weekActuals = weekRanges.map((week) => {
       const row = weeklyActualStmt.get(userId, cat.id, month, week.startDay, week.endDay) as any;
-      const weekActual = row.total;
+      return row.total as number;
+    });
+
+    // Step 2: redistribute budget only among weeks with spending
+    const weeksWithSpending = weekActuals.filter(a => a > 0).length;
+    const effectiveWeeks = weeksWithSpending > 0 ? weeksWithSpending : weekRanges.length;
+    const weeklyForecastPerWeek = forecast > 0 ? Math.round(forecast / effectiveWeeks) : 0;
+
+    // Step 3: build breakdown — weeks with no spending get 0 remaining
+    const weeklyBreakdown = weekRanges.map((week, i) => {
+      const weekActual = weekActuals[i];
       const transactions = weeklyTransactionsStmt.all(userId, cat.id, month, week.startDay, week.endDay) as any[];
       return {
         label: week.label,
         startDay: week.startDay,
         endDay: week.endDay,
         actual: weekActual,
-        remaining: Math.max(0, weeklyForecastPerWeek - weekActual),
+        remaining: weekActual > 0 ? Math.max(0, weeklyForecastPerWeek - weekActual) : 0,
         transactions: transactions.map((t: any) => ({
           id: t.id,
           date: t.date,
