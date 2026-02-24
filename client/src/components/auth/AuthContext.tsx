@@ -36,11 +36,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .then((res) => {
           setUser(res.data);
         })
-        .catch(() => {
-          // Token invalid — clear it
-          localStorage.removeItem('token');
-          setToken(null);
-          setUser(null);
+        .catch((err) => {
+          // Only clear token on 401 (invalid/expired), not on network errors
+          if (err.response?.status === 401) {
+            localStorage.removeItem('token');
+            setToken(null);
+            setUser(null);
+          }
         })
         .finally(() => setIsLoading(false));
     } else {
