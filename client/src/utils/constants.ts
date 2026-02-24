@@ -14,14 +14,19 @@ export const CATEGORY_COLORS: Record<string, string> = {
   'אחר': '#6B7280',
 };
 
-export const NAV_ITEMS = [
+export const PRIMARY_NAV = [
   { path: '/', label: 'תזרים חודשי', icon: 'LayoutDashboard' },
   { path: '/analysis', label: 'ניתוח', icon: 'PieChart' },
   { path: '/transactions', label: 'עסקאות', icon: 'Receipt' },
-  { path: '/upload', label: 'העלאת קובץ', icon: 'Upload' },
   { path: '/income', label: 'הכנסות', icon: 'TrendingUp' },
   { path: '/fixed-expenses', label: 'הוצאות קבועות', icon: 'Calendar' },
+] as const;
+
+export const MENU_NAV = [
+  { path: '/upload', label: 'העלאת קובץ', icon: 'Upload' },
   { path: '/categories', label: 'קטגוריות', icon: 'FolderOpen' },
   { path: '/rules', label: 'כללי סיווג', icon: 'Tags' },
   { path: '/settings', label: 'הגדרות', icon: 'Settings' },
 ] as const;
+
+export const NAV_ITEMS = [...PRIMARY_NAV, ...MENU_NAV] as const;
