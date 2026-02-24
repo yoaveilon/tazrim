@@ -133,7 +133,7 @@ export default function RulesPage() {
       {/* Unclassified transactions */}
       {unclassified?.data && unclassified.data.length > 0 && (
         <div className="card mb-6">
-          <h3 className="font-semibold mb-3 text-amber-700">
+          <h3 className="font-semibold mb-3 text-gold-700">
             עסקאות לא מסווגות ({unclassified.total})
           </h3>
           <div className="space-y-2">
@@ -187,7 +187,7 @@ export default function RulesPage() {
                   <td className="py-2">
                     <button
                       onClick={() => deleteMutation.mutate(rule.id)}
-                      className="text-red-500 hover:text-red-700 text-xs"
+                      className="text-danger-400 hover:text-danger-700 text-xs"
                     >
                       מחק
                     </button>

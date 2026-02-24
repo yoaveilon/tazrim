@@ -239,15 +239,15 @@ export default function FixedExpensesPage({ month }: Props) {
       <div className="grid grid-cols-3 gap-4 mb-4">
         <div className="card">
           <p className="text-xs text-gray-500 mb-1">סה"כ חודשי</p>
-          <p className="text-xl font-bold text-red-600">{formatNIS(totalMonthly)}</p>
+          <p className="text-xl font-bold text-danger-400">{formatNIS(totalMonthly)}</p>
         </div>
         <div className="card">
           <p className="text-xs text-gray-500 mb-1">שולם ב{formatMonthHebrew(month)}</p>
-          <p className="text-xl font-bold text-green-600">{formatNIS(paidTotal)}</p>
+          <p className="text-xl font-bold text-success-500">{formatNIS(paidTotal)}</p>
         </div>
         <div className="card">
           <p className="text-xs text-gray-500 mb-1">טרם שולם</p>
-          <p className="text-xl font-bold text-orange-500">{formatNIS(unpaidTotal)}</p>
+          <p className="text-xl font-bold text-warning-500">{formatNIS(unpaidTotal)}</p>
         </div>
       </div>
 
@@ -272,7 +272,7 @@ export default function FixedExpensesPage({ month }: Props) {
                   key={e.id}
                   className={`group flex items-center justify-between py-3 px-3 rounded-lg border transition-colors ${
                     isPaid
-                      ? 'bg-green-50 border-green-200'
+                      ? 'bg-success-50 border-success-200'
                       : 'bg-white border-gray-100 hover:border-gray-200'
                   }`}
                 >
@@ -283,8 +283,8 @@ export default function FixedExpensesPage({ month }: Props) {
                       disabled={payMutation.isPending || unpayMutation.isPending}
                       className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 text-sm ${
                         isPaid
-                          ? 'bg-green-500 border-green-500 text-white'
-                          : 'border-gray-300 hover:border-green-400 text-transparent hover:text-green-300'
+                          ? 'bg-success-500 border-success-500 text-white'
+                          : 'border-gray-300 hover:border-success-400 text-transparent hover:text-success-300'
                       }`}
                       title={isPaid ? 'בטל סימון תשלום' : 'סמן כשולם'}
                     >
@@ -298,7 +298,7 @@ export default function FixedExpensesPage({ month }: Props) {
                         <select
                           value={editCategoryId}
                           onChange={(ev) => setEditCategoryId(ev.target.value)}
-                          className="text-xs border border-gray-200 rounded-lg px-2 py-1 mt-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                          className="text-xs border border-gray-200 rounded-lg px-2 py-1 mt-1 focus:outline-none focus:ring-1 focus:ring-primary-400"
                         >
                           <option value="">ללא קטגוריה</option>
                           {expenseCategories.map((c: Category) => (
@@ -325,18 +325,18 @@ export default function FixedExpensesPage({ month }: Props) {
                             if (ev.key === 'Escape') setEditingId(null);
                           }}
                           autoFocus
-                          className="w-24 px-2 py-1 border border-blue-300 rounded-xl text-sm font-mono focus:outline-none focus:ring-1 focus:ring-blue-400 text-left"
+                          className="w-24 px-2 py-1 border border-primary-300 rounded-xl text-sm font-mono focus:outline-none focus:ring-1 focus:ring-primary-400 text-left"
                         />
-                        <button onClick={() => saveEdit(e.id)} className="text-green-600 hover:text-green-800"><Check className="w-4 h-4" strokeWidth={1.5} /></button>
+                        <button onClick={() => saveEdit(e.id)} className="text-success-500 hover:text-success-700"><Check className="w-4 h-4" strokeWidth={1.5} /></button>
                         <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" strokeWidth={1.5} /></button>
                       </div>
                     ) : (
                       <div className="text-left">
-                        <span className={`font-mono font-medium ${isPaid ? 'text-green-600' : 'text-red-600'}`}>
+                        <span className={`font-mono font-medium ${isPaid ? 'text-success-500' : 'text-danger-400'}`}>
                           {formatNIS(paidAmount || e.amount)}
                         </span>
                         {isPaid && (
-                          <span className="text-xs text-green-600 flex items-center gap-0.5">שולם <Check className="w-3 h-3" strokeWidth={2} /></span>
+                          <span className="text-xs text-success-500 flex items-center gap-0.5">שולם <Check className="w-3 h-3" strokeWidth={2} /></span>
                         )}
                       </div>
                     )}
@@ -344,7 +344,7 @@ export default function FixedExpensesPage({ month }: Props) {
                       <>
                         <button
                           onClick={() => startEdit(e)}
-                          className="text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="text-gray-400 hover:text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity"
                           title="ערוך"
                         >
                           <Pencil className="w-4 h-4" strokeWidth={1.5} />
@@ -355,7 +355,7 @@ export default function FixedExpensesPage({ month }: Props) {
                               deleteMutation.mutate(e.id);
                             }
                           }}
-                          className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="text-danger-300 hover:text-danger-500 opacity-0 group-hover:opacity-100 transition-opacity"
                           title="מחק"
                         >
                           <Trash2 className="w-4 h-4" strokeWidth={1.5} />

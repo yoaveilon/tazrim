@@ -46,7 +46,7 @@ export default function DashboardPage({ month }: Props) {
   });
 
   const remaining = cashflow?.remainingToSpend || 0;
-  const remainingColor = remaining >= 0 ? 'text-green-600' : 'text-red-600';
+  const remainingColor = remaining >= 0 ? 'text-success-500' : 'text-danger-400';
 
   // Progress bar: how much of expected income has been spent
   const spentPercent = cashflow?.expectedIncome
@@ -73,7 +73,7 @@ export default function DashboardPage({ month }: Props) {
         {/* Balance card */}
         <div className="card !p-0 overflow-hidden">
           <div className="px-5 pt-5 pb-1">
-            <span className="text-xs font-semibold text-red-500 tracking-wide">נותר להוציא</span>
+            <span className="text-xs font-semibold text-danger-400 tracking-wide">נותר להוציא</span>
           </div>
           <div className="px-5 pb-5">
             <p className={`text-2xl sm:text-3xl font-bold ${remainingColor}`}>
@@ -85,7 +85,7 @@ export default function DashboardPage({ month }: Props) {
         {/* Expenses card */}
         <div className="card !p-0 overflow-hidden">
           <div className="px-5 pt-5 pb-1">
-            <span className="text-xs font-semibold text-green-500 tracking-wide">הוצאות צפויות</span>
+            <span className="text-xs font-semibold text-success-500 tracking-wide">הוצאות צפויות</span>
           </div>
           <div className="px-5 pb-5">
             <p className="text-2xl sm:text-3xl font-bold text-gray-900">
@@ -127,7 +127,7 @@ export default function DashboardPage({ month }: Props) {
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className={`text-lg sm:text-xl font-bold ${spentPercent > 90 ? 'text-red-500' : spentPercent > 70 ? 'text-orange-500' : 'text-accent-blue'}`}>
+                <span className={`text-lg sm:text-xl font-bold ${spentPercent > 90 ? 'text-danger-400' : spentPercent > 70 ? 'text-warning-500' : 'text-accent-blue'}`}>
                   {spentPercent}%
                 </span>
               </div>
@@ -166,7 +166,7 @@ export default function DashboardPage({ month }: Props) {
                             if (e.key === 'Escape') setEditingIncomeId(null);
                           }}
                           autoFocus
-                          className="w-24 px-2 py-1 border border-green-300 rounded-xl text-sm font-mono focus:outline-none focus:ring-1 focus:ring-green-400 text-left"
+                          className="w-24 px-2 py-1 border border-success-300 rounded-xl text-sm font-mono focus:outline-none focus:ring-1 focus:ring-success-400 text-left"
                         />
                         <button
                           onClick={() => {
@@ -175,7 +175,7 @@ export default function DashboardPage({ month }: Props) {
                               incomeMutation.mutate({ id: r.id, expected_amount: val });
                             }
                           }}
-                          className="text-green-600 hover:text-green-800"
+                          className="text-success-500 hover:text-success-700"
                         ><Check className="w-4 h-4" strokeWidth={1.5} /></button>
                         <button onClick={() => setEditingIncomeId(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" strokeWidth={1.5} /></button>
                       </div>
@@ -186,7 +186,7 @@ export default function DashboardPage({ month }: Props) {
                           setEditingIncomeId(r.id);
                           setEditingIncomeValue(String(r.expected_amount));
                         }}
-                        className="font-mono text-sm text-green-600 font-medium hover:text-green-800 hover:underline cursor-pointer"
+                        className="font-mono text-sm text-success-500 font-medium hover:text-success-700 hover:underline cursor-pointer"
                         title="לחץ לעריכה"
                       >
                         {formatNIS(r.expected_amount)}
@@ -198,7 +198,7 @@ export default function DashboardPage({ month }: Props) {
                           e.stopPropagation();
                           incomeMutation.mutate({ id: r.id, actual_amount: 0, status: 'expected' });
                         }}
-                        className="text-xs bg-green-100 text-green-700 hover:bg-red-50 hover:text-red-600 px-2.5 py-1 rounded-full transition-colors cursor-pointer"
+                        className="text-xs bg-success-100 text-success-700 hover:bg-danger-50 hover:text-danger-600 px-2.5 py-1 rounded-full transition-colors cursor-pointer"
                         title="לחץ לביטול"
                       >
                         התקבל ✓
@@ -209,7 +209,7 @@ export default function DashboardPage({ month }: Props) {
                           e.stopPropagation();
                           incomeMutation.mutate({ id: r.id, actual_amount: r.expected_amount, status: 'received' });
                         }}
-                        className="text-xs bg-gray-100 text-gray-600 hover:bg-green-50 hover:text-green-700 px-2.5 py-1 rounded-full transition-colors"
+                        className="text-xs bg-gray-100 text-gray-600 hover:bg-success-50 hover:text-success-700 px-2.5 py-1 rounded-full transition-colors"
                       >
                         סמן כהתקבל
                       </button>
@@ -226,8 +226,8 @@ export default function DashboardPage({ month }: Props) {
           {variableIncome && variableIncome.total > 0 && (
             <div className="mt-4 pt-4 border-t border-gray-100">
               <div className="flex items-center justify-between mb-2">
-                <h4 className="font-semibold text-sm text-emerald-700">הכנסות משתנות (זיכויים)</h4>
-                <span className="font-mono text-sm text-emerald-600 font-medium">
+                <h4 className="font-semibold text-sm text-success-700">הכנסות משתנות (זיכויים)</h4>
+                <span className="font-mono text-sm text-success-600 font-medium">
                   +{formatNIS(variableIncome.total)}
                 </span>
               </div>
@@ -235,7 +235,7 @@ export default function DashboardPage({ month }: Props) {
                 {variableIncome.refunds.map((item) => (
                   <div key={item.id} className="flex items-center justify-between py-1.5 text-sm">
                     <span className="text-gray-600 truncate flex-1 min-w-0">{item.description}</span>
-                    <span className="font-mono text-emerald-600 mr-2">+{formatNIS(item.amount)}</span>
+                    <span className="font-mono text-success-600 mr-2">+{formatNIS(item.amount)}</span>
                   </div>
                 ))}
               </div>
@@ -350,10 +350,10 @@ function CategoryCard({ cat, onUpdateForecast }: { cat: CategoryForecast; onUpda
             onKeyDown={handleKeyDown}
             onBlur={handleSave}
             autoFocus
-            className="w-24 px-2 py-1 border border-blue-300 rounded-xl text-sm font-mono focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className="w-24 px-2 py-1 border border-primary-300 rounded-xl text-sm font-mono focus:outline-none focus:ring-1 focus:ring-primary-400"
             placeholder="אוטו"
           />
-          <button onClick={handleSave} className="text-green-600 hover:text-green-800"><Check className="w-4 h-4" strokeWidth={1.5} /></button>
+          <button onClick={handleSave} className="text-success-500 hover:text-success-700"><Check className="w-4 h-4" strokeWidth={1.5} /></button>
           <button onClick={() => setIsEditing(false)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" strokeWidth={1.5} /></button>
         </div>
       )}
@@ -369,7 +369,7 @@ function CategoryCard({ cat, onUpdateForecast }: { cat: CategoryForecast; onUpda
           </div>
           <div className="text-right">
             <p className="text-xs text-gray-400 mb-0.5">יצא</p>
-            <p className={`text-xl font-bold ${isAtOrOverBudget ? 'text-orange-500' : 'text-gray-900'}`}>
+            <p className={`text-xl font-bold ${isAtOrOverBudget ? 'text-warning-500' : 'text-gray-900'}`}>
               {formatNIS(cat.actual)}
             </p>
           </div>

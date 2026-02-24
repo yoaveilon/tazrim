@@ -143,14 +143,14 @@ export default function IncomePage({ month }: Props) {
                   <p className="text-sm text-gray-500">יום {s.expected_day} בחודש</p>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className="font-mono text-green-600 font-medium">{formatNIS(s.amount)}</span>
+                  <span className="font-mono text-success-500 font-medium">{formatNIS(s.amount)}</span>
                   <button
                     onClick={() => {
                       if (confirm(`למחוק את "${s.name}"?`)) {
                         deleteMutation.mutate(s.id);
                       }
                     }}
-                    className="text-red-500 hover:text-red-700 text-sm"
+                    className="text-danger-400 hover:text-danger-700 text-sm"
                   >
                     מחק
                   </button>
@@ -176,7 +176,7 @@ export default function IncomePage({ month }: Props) {
                 </div>
                 <div className="flex items-center gap-3">
                   {r.status === 'received' ? (
-                    <span className="text-green-600 font-medium">
+                    <span className="text-success-500 font-medium">
                       {formatNIS(r.actual_amount || r.expected_amount)} ✓
                     </span>
                   ) : (
@@ -203,7 +203,7 @@ export default function IncomePage({ month }: Props) {
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold">הכנסות משתנות</h3>
           {variableIncome && variableIncome.total > 0 && (
-            <span className="text-sm font-mono text-emerald-600 font-medium">
+            <span className="text-sm font-mono text-success-600 font-medium">
               סה״כ: {formatNIS(variableIncome.total)}
             </span>
           )}
@@ -230,7 +230,7 @@ export default function IncomePage({ month }: Props) {
                     )}
                   </div>
                 </div>
-                <span className="font-mono text-emerald-600 font-medium text-sm mr-3">
+                <span className="font-mono text-success-600 font-medium text-sm mr-3">
                   +{formatNIS(item.amount)}
                 </span>
               </div>

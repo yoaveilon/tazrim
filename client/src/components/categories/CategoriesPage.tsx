@@ -383,7 +383,7 @@ function CategoryRow({
         <button onClick={onEdit} className="text-gray-400 hover:text-primary-600 text-sm">
           עריכה
         </button>
-        <button onClick={onDelete} className="text-gray-400 hover:text-red-600 text-sm">
+        <button onClick={onDelete} className="text-gray-400 hover:text-danger-500 text-sm">
           מחיקה
         </button>
       </div>
@@ -419,12 +419,12 @@ function DeleteCategoryModal({
         </p>
 
         {count > 0 ? (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 my-4">
-            <p className="text-amber-800 text-sm font-medium mb-2 flex items-center gap-1.5">
+          <div className="bg-gold-50 border border-gold-200 rounded-lg p-3 my-4">
+            <p className="text-gold-800 text-sm font-medium mb-2 flex items-center gap-1.5">
               <AlertTriangle className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
               יש {count} עסקאות משויכות לקטגוריה זו
             </p>
-            <p className="text-amber-700 text-sm mb-3">מה לעשות עם העסקאות?</p>
+            <p className="text-gold-700 text-sm mb-3">מה לעשות עם העסקאות?</p>
             <select
               value={reassignTo}
               onChange={(e) => onReassignChange(e.target.value)}
@@ -449,7 +449,7 @@ function DeleteCategoryModal({
           <button
             onClick={onConfirm}
             disabled={isPending}
-            className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+            className="px-4 py-2 text-sm bg-danger-500 text-white rounded-lg hover:bg-danger-600 disabled:opacity-50"
           >
             {isPending ? 'מוחק...' : 'מחק קטגוריה'}
           </button>

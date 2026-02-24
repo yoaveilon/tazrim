@@ -23,7 +23,7 @@
   }
 
   .btn-danger {
-    @apply bg-red-600 text-white px-5 py-2.5 rounded-2xl hover:bg-red-700 transition-all font-medium;
+    @apply bg-danger-500 text-white px-5 py-2.5 rounded-2xl hover:bg-danger-600 transition-all font-medium;
   }
 
   .card {

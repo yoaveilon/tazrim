@@ -16,24 +16,24 @@ export default function ImportSummary({ result, onReset }: Props) {
 
       <div className="flex justify-center gap-8 mb-8">
         <div>
-          <p className="text-3xl font-bold text-green-600">{result.imported}</p>
+          <p className="text-3xl font-bold text-success-500">{result.imported}</p>
           <p className="text-sm text-gray-500">יובאו</p>
         </div>
         {result.autoClassified > 0 && (
           <div>
-            <p className="text-3xl font-bold text-blue-500">{result.autoClassified}</p>
+            <p className="text-3xl font-bold text-info-500">{result.autoClassified}</p>
             <p className="text-sm text-gray-500">סווגו אוטומטית</p>
           </div>
         )}
         {result.skipped > 0 && (
           <div>
-            <p className="text-3xl font-bold text-amber-500">{result.skipped}</p>
+            <p className="text-3xl font-bold text-gold-500">{result.skipped}</p>
             <p className="text-sm text-gray-500">דולגו (כפילויות)</p>
           </div>
         )}
         {result.failed > 0 && (
           <div>
-            <p className="text-3xl font-bold text-red-500">{result.failed}</p>
+            <p className="text-3xl font-bold text-danger-400">{result.failed}</p>
             <p className="text-sm text-gray-500">נכשלו</p>
           </div>
         )}

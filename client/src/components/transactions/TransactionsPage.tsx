@@ -269,7 +269,7 @@ export default function TransactionsPage({ month }: Props) {
                   <td className="py-3">
                     <button
                       onClick={() => openFixedModal(txn)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-blue-600"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-primary-500"
                       title="סמן כהוצאה קבועה"
                     >
                       <Pin className="w-4 h-4" strokeWidth={1.5} />
@@ -341,7 +341,7 @@ export default function TransactionsPage({ month }: Props) {
                   )}
                   <button
                     onClick={() => openFixedModal(txn)}
-                    className="text-gray-400 hover:text-blue-600 p-1"
+                    className="text-gray-400 hover:text-primary-500 p-1"
                     title="סמן כהוצאה קבועה"
                   >
                     <Pin className="w-4 h-4" strokeWidth={1.5} />
@@ -377,7 +377,7 @@ export default function TransactionsPage({ month }: Props) {
                 type="checkbox"
                 checked={selectedSimilarIds.size === similarSuggestion.transactions.length}
                 onChange={toggleAllSimilar}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="w-4 h-4 rounded border-gray-300 text-primary-500 focus:ring-primary-500"
               />
               בחר הכל ({similarSuggestion.transactions.length})
             </label>
@@ -393,7 +393,7 @@ export default function TransactionsPage({ month }: Props) {
                     type="checkbox"
                     checked={selectedSimilarIds.has(txn.id)}
                     onChange={() => toggleSimilarId(txn.id)}
-                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 flex-shrink-0"
+                    className="w-4 h-4 rounded border-gray-300 text-primary-500 focus:ring-primary-500 flex-shrink-0"
                   />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm truncate">{txn.description}</div>
@@ -401,7 +401,7 @@ export default function TransactionsPage({ month }: Props) {
                       <span>{formatDateHebrew(txn.date)}</span>
                       <span className="font-mono">{formatNIS(txn.charged_amount)}</span>
                       {txn.category_name ? (
-                        <span className="text-orange-600 inline-flex items-center gap-1">
+                        <span className="text-warning-500 inline-flex items-center gap-1">
                           {txn.category_icon && <CategoryIcon icon={txn.category_icon} className="w-3 h-3" strokeWidth={1.5} />}
                           {txn.category_name}
                         </span>

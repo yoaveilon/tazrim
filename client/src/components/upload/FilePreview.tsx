@@ -40,9 +40,9 @@ export default function FilePreview({ result, onConfirm, onCancel, isImporting }
 
       {/* Errors */}
       {result.errors.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
-          <p className="font-medium text-amber-800 mb-2">שגיאות פענוח ({result.errors.length})</p>
-          <ul className="text-sm text-amber-700 space-y-1 max-h-32 overflow-y-auto">
+        <div className="bg-gold-50 border border-gold-200 rounded-lg p-4 mb-4">
+          <p className="font-medium text-gold-800 mb-2">שגיאות פענוח ({result.errors.length})</p>
+          <ul className="text-sm text-gold-700 space-y-1 max-h-32 overflow-y-auto">
             {result.errors.map((err, i) => (
               <li key={i}>{err}</li>
             ))}

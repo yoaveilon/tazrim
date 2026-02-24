@@ -108,7 +108,7 @@ export default function Sidebar({ isOpen, onClose }: Props) {
             </div>
             <button
               onClick={logout}
-              className="w-full mt-2 text-xs text-gray-400 hover:text-red-500 py-1.5 rounded-xl transition-colors flex items-center justify-center gap-1.5"
+              className="w-full mt-2 text-xs text-gray-400 hover:text-danger-400 py-1.5 rounded-xl transition-colors flex items-center justify-center gap-1.5"
             >
               <LogOut className="w-3.5 h-3.5" strokeWidth={1.5} />
               התנתק

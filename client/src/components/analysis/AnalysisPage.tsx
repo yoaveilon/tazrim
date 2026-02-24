@@ -122,7 +122,7 @@ export default function AnalysisPage({ month }: Props) {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="card">
             <p className="text-xs text-gray-500 mb-1">הוצאות החודש</p>
-            <p className="text-xl font-bold text-red-600">{formatNIS(monthlyComparison.current.expenses)}</p>
+            <p className="text-xl font-bold text-danger-400">{formatNIS(monthlyComparison.current.expenses)}</p>
           </div>
           <div className="card">
             <p className="text-xs text-gray-500 mb-1">ממוצע חודשי</p>
@@ -131,7 +131,7 @@ export default function AnalysisPage({ month }: Props) {
           <div className="card">
             <p className="text-xs text-gray-500 mb-1">הפרש מהממוצע</p>
             {monthlyComparison.avgExpenses > 0 ? (
-              <p className={`text-xl font-bold ${monthlyComparison.current.expenses > monthlyComparison.avgExpenses ? 'text-red-600' : 'text-green-600'}`}>
+              <p className={`text-xl font-bold ${monthlyComparison.current.expenses > monthlyComparison.avgExpenses ? 'text-danger-400' : 'text-success-500'}`}>
                 {monthlyComparison.current.expenses > monthlyComparison.avgExpenses ? '+' : ''}
                 {formatNIS(monthlyComparison.current.expenses - monthlyComparison.avgExpenses)}
               </p>
@@ -141,7 +141,7 @@ export default function AnalysisPage({ month }: Props) {
           </div>
           <div className="card">
             <p className="text-xs text-gray-500 mb-1">מספר קטגוריות פעילות</p>
-            <p className="text-xl font-bold text-blue-600">{pieData.length}</p>
+            <p className="text-xl font-bold text-info-500">{pieData.length}</p>
           </div>
         </div>
       )}
@@ -245,7 +245,7 @@ export default function AnalysisPage({ month }: Props) {
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm">{item.name}</span>
                       <span className={`text-sm font-mono font-medium ${
-                        item.efficiency > 100 ? 'text-red-600' : item.efficiency > 80 ? 'text-orange-500' : 'text-green-600'
+                        item.efficiency > 100 ? 'text-danger-400' : item.efficiency > 80 ? 'text-warning-500' : 'text-success-500'
                       }`}>
                         {item.efficiency}%
                       </span>
@@ -253,7 +253,7 @@ export default function AnalysisPage({ month }: Props) {
                     <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
                       <div
                         className={`h-2.5 rounded-full transition-all ${
-                          item.efficiency > 100 ? 'bg-red-500' : item.efficiency > 80 ? 'bg-orange-400' : 'bg-green-500'
+                          item.efficiency > 100 ? 'bg-danger-400' : item.efficiency > 80 ? 'bg-warning-500' : 'bg-success-500'
                         }`}
                         style={{ width: `${Math.min(item.efficiency, 100)}%` }}
                       />
@@ -353,7 +353,7 @@ export default function AnalysisPage({ month }: Props) {
                     </td>
                     <td className="py-2.5 pe-4 text-left font-mono">{formatNIS(cat.actual)}</td>
                     <td className="py-2.5 pe-4 text-left font-mono text-gray-500">{formatNIS(cat.forecast)}</td>
-                    <td className={`py-2.5 pe-4 text-left font-mono ${cat.difference < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    <td className={`py-2.5 pe-4 text-left font-mono ${cat.difference < 0 ? 'text-danger-400' : 'text-success-500'}`}>
                       {cat.difference < 0 ? '+' : '-'}{formatNIS(Math.abs(cat.difference))}
                     </td>
                     <td className="py-2.5 text-left font-mono text-gray-500">
@@ -367,7 +367,7 @@ export default function AnalysisPage({ month }: Props) {
                 <td className="py-2.5 pe-4">סה"כ</td>
                 <td className="py-2.5 pe-4 text-left font-mono">{formatNIS(totalActual)}</td>
                 <td className="py-2.5 pe-4 text-left font-mono text-gray-500">{formatNIS(cashflow?.totalForecastExpenses || 0)}</td>
-                <td className={`py-2.5 pe-4 text-left font-mono ${(cashflow?.totalForecastExpenses || 0) - totalActual < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                <td className={`py-2.5 pe-4 text-left font-mono ${(cashflow?.totalForecastExpenses || 0) - totalActual < 0 ? 'text-danger-400' : 'text-success-500'}`}>
                   {formatNIS(Math.abs((cashflow?.totalForecastExpenses || 0) - totalActual))}
                 </td>
                 <td className="py-2.5 text-left font-mono">100%</td>
