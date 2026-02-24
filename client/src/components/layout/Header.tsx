@@ -59,29 +59,29 @@ export default function Header({ currentMonth, onMonthChange }: Props) {
             })}
           </nav>
 
-          {/* Center: Month navigation */}
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => onMonthChange(getPrevMonth(currentMonth))}
-              className="p-1 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
-              title="חודש קודם"
-            >
-              <ChevronRight className="w-4 h-4" strokeWidth={1.5} />
-            </button>
-            <span className="text-sm font-semibold text-gray-700 min-w-[100px] text-center">
-              {formatMonthHebrew(currentMonth)}
-            </span>
-            <button
-              onClick={() => onMonthChange(getNextMonth(currentMonth))}
-              className="p-1 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
-              title="חודש הבא"
-            >
-              <ChevronLeft className="w-4 h-4" strokeWidth={1.5} />
-            </button>
-          </div>
+          {/* Left: Month nav + Settings dropdown + Avatar */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => onMonthChange(getPrevMonth(currentMonth))}
+                className="p-1 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
+                title="חודש קודם"
+              >
+                <ChevronRight className="w-4 h-4" strokeWidth={1.5} />
+              </button>
+              <span className="text-sm font-semibold text-gray-700 min-w-[100px] text-center">
+                {formatMonthHebrew(currentMonth)}
+              </span>
+              <button
+                onClick={() => onMonthChange(getNextMonth(currentMonth))}
+                className="p-1 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
+                title="חודש הבא"
+              >
+                <ChevronLeft className="w-4 h-4" strokeWidth={1.5} />
+              </button>
+            </div>
 
-          {/* Left: Settings dropdown + Avatar */}
-          <div className="flex items-center gap-2">
+            <div className="w-px h-6 bg-gray-200" />
             <HeadlessMenu as="div" className="relative">
               <MenuButton
                 className={clsx(

@@ -253,12 +253,7 @@ export default function DashboardPage({ month }: Props) {
 
       {/* Category forecasts */}
       <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-gray-900">פירוט הוצאות לפי קטגוריות</h3>
-          <button className="text-sm text-accent-blue hover:text-primary-700 font-medium transition-colors">
-            הצג הכל
-          </button>
-        </div>
+        <h3 className="text-lg font-bold text-gray-900 mb-4">פירוט הוצאות לפי קטגוריות</h3>
         {cashflow?.categoryForecasts?.length ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...cashflow.categoryForecasts].sort((a: CategoryForecast, b: CategoryForecast) => {
