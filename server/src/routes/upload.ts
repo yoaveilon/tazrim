@@ -80,13 +80,16 @@ router.post('/import', (req: Request, res: Response, next: NextFunction) => {
       )
     `);
 
-    // Update processed_date for existing duplicates (when re-uploading with billing date)
-    const updateProcessedDateStmt = db.prepare(`
+    // Update existing duplicate: refresh description and processed_date
+    // This handles cases where the credit card company changes the description between reports
+    const updateExistingStmt = db.prepare(`
       UPDATE transactions
-      SET processed_date = ?
-      WHERE date = ? AND description = ? AND charged_amount = ?
-        AND (card_last_four = ? OR (card_last_four IS NULL AND ? IS NULL))
-        AND (processed_date IS NULL OR processed_date = '')
+      SET description = ?,
+          processed_date = COALESCE(?, processed_date),
+          source_file = ?,
+          source_company = ?
+      WHERE user_id = ? AND date = ? AND charged_amount = ?
+        AND COALESCE(card_last_four, '') = ?
     `);
 
     let imported = 0;
@@ -121,18 +124,17 @@ router.post('/import', (req: Request, res: Response, next: NextFunction) => {
               autoClassified++;
             }
           } else {
-            skipped++; // Duplicate
-            // Update processed_date on existing duplicate if we have one now
-            if (txn.processed_date) {
-              updateProcessedDateStmt.run(
-                txn.processed_date,
-                txn.date,
-                txn.description,
-                txn.charged_amount,
-                txn.card_last_four || null,
-                txn.card_last_four || null
-              );
-            }
+            skipped++; // Duplicate — update description & processed_date from newer file
+            updateExistingStmt.run(
+              txn.description,
+              txn.processed_date || null,
+              filename,
+              sourceCompany,
+              userId,
+              txn.date,
+              txn.charged_amount,
+              txn.card_last_four || ''
+            );
           }
         } catch {
           failed++;
