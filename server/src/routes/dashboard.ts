@@ -346,12 +346,9 @@ router.get('/cashflow', (req: Request, res: Response) => {
       const transactions = weeklyTransactionsStmt.all(userId, cat.id, month, week.startDay, week.endDay) as any[];
 
       let remaining: number;
-      if (weekActual === 0) {
-        // No spending — no remaining shown
+      if (weekActual === 0 || isPastWeek) {
+        // No spending or past week — show 0 (leftover already carried forward)
         remaining = 0;
-      } else if (isPastWeek) {
-        // Past week — show remaining without carry-over (already donated)
-        remaining = Math.max(0, baseBudgetPerWeek - weekActual);
       } else {
         // Current/future week — gets base budget + share of carry-over
         remaining = Math.max(0, (baseBudgetPerWeek + carryOverPerWeek) - weekActual);
