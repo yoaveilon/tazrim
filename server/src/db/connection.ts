@@ -27,6 +27,13 @@ export function initializeDatabase(): void {
   db.pragma('foreign_keys = ON');
 
   runMigrations();
+
+  // Log applied migrations for debugging
+  try {
+    const migrations = db.prepare('SELECT name FROM _migrations ORDER BY name').all() as any[];
+    console.log('Applied migrations:', migrations.map((m: any) => m.name).join(', '));
+  } catch { /* _migrations table might not exist yet */ }
+
   console.log('Database initialized at', DB_PATH);
 }
 
@@ -54,13 +61,21 @@ function runMigrations(): void {
     .filter(f => f.endsWith('.sql'))
     .sort();
 
+  console.log(`Migrations: ${applied.size} applied, ${files.length} total`);
+
   for (const file of files) {
     if (applied.has(file)) continue;
 
     const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf-8');
     console.log(`Running migration: ${file}`);
 
-    db.exec(sql);
-    db.prepare('INSERT INTO _migrations (name) VALUES (?)').run(file);
+    try {
+      db.exec(sql);
+      db.prepare('INSERT INTO _migrations (name) VALUES (?)').run(file);
+      console.log(`Migration ${file} completed successfully`);
+    } catch (err) {
+      console.error(`Migration ${file} failed:`, err);
+      throw err;
+    }
   }
 }

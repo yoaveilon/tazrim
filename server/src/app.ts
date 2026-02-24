@@ -13,6 +13,7 @@ import incomeRouter from './routes/income.js';
 import fixedExpensesRouter from './routes/fixed-expenses.js';
 import dashboardRouter from './routes/dashboard.js';
 import settingsRouter from './routes/settings.js';
+import { getDb } from './db/connection.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -22,7 +23,21 @@ app.use(cors());
 app.use(express.json());
 
 // Health check (no auth required)
-app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
+app.get('/api/health', (_req, res) => {
+  try {
+    const db = getDb();
+    const migrations = db.prepare('SELECT name FROM _migrations ORDER BY name').all();
+    const dupes = db.prepare(`
+      SELECT user_id, date, description, charged_amount, COALESCE(card_last_four, '') as card, COUNT(*) as cnt
+      FROM transactions
+      GROUP BY user_id, date, description, charged_amount, COALESCE(card_last_four, '')
+      HAVING cnt > 1
+    `).all();
+    res.json({ status: 'ok', migrations: migrations.map((m: any) => m.name), duplicates: dupes.length });
+  } catch {
+    res.json({ status: 'ok' });
+  }
+});
 
 // Auth routes (no auth required)
 app.use('/api/auth', authRouter);
