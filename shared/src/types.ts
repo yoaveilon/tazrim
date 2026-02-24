@@ -95,6 +95,14 @@ export interface UpdateTransactionInput {
   notes?: string;
 }
 
+export interface CreateTransactionInput {
+  date: string;
+  description: string;
+  charged_amount: number;
+  category_id?: number;
+  notes?: string;
+}
+
 // --- Income ---
 export interface IncomeSource {
   id: number;

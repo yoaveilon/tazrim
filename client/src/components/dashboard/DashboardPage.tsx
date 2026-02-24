@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { getCashFlow, setForecastOverride, getIncomeRecords, updateIncomeRecord, getVariableIncome, getCategories, updateTransaction } from '../../services/api';
+import { getCashFlow, setForecastOverride, getIncomeRecords, updateIncomeRecord, getVariableIncome, getCategories, updateTransaction, createTransaction } from '../../services/api';
 import { formatNIS } from '../../utils/currency';
 import { formatMonthHebrew } from '../../utils/date';
-import type { CategoryForecast, IncomeRecord, Category } from 'shared/src/types';
-import { ChevronDown, MoreVertical, Check, X, ArrowLeftRight } from 'lucide-react';
+import type { CategoryForecast, IncomeRecord, Category, CreateTransactionInput } from 'shared/src/types';
+import { ChevronDown, MoreVertical, Check, X, ArrowLeftRight, Plus } from 'lucide-react';
 
 interface Props {
   month: string;
@@ -15,6 +15,8 @@ export default function DashboardPage({ month }: Props) {
   const [incomeOpen, setIncomeOpen] = useState(false);
   const [editingIncomeId, setEditingIncomeId] = useState<number | null>(null);
   const [editingIncomeValue, setEditingIncomeValue] = useState('');
+  const [addExpenseOpen, setAddExpenseOpen] = useState(false);
+  const [newExpense, setNewExpense] = useState({ date: '', description: '', charged_amount: '', category_id: '', notes: '' });
 
   const { data: cashflow } = useQuery({
     queryKey: ['cashflow', month],
@@ -51,6 +53,29 @@ export default function DashboardPage({ month }: Props) {
     },
     onError: () => toast.error('שגיאה בעדכון'),
   });
+
+  const addExpenseMutation = useMutation({
+    mutationFn: (input: CreateTransactionInput) => createTransaction(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cashflow'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      setAddExpenseOpen(false);
+      setNewExpense({ date: '', description: '', charged_amount: '', category_id: '', notes: '' });
+      toast.success('הוצאה נוספה');
+    },
+    onError: () => toast.error('שגיאה בהוספת הוצאה'),
+  });
+
+  const handleAddExpense = () => {
+    if (!newExpense.description || !newExpense.charged_amount) return;
+    addExpenseMutation.mutate({
+      date: newExpense.date || new Date().toISOString().slice(0, 10),
+      description: newExpense.description,
+      charged_amount: Math.ceil(Number(newExpense.charged_amount)),
+      category_id: newExpense.category_id ? Number(newExpense.category_id) : undefined,
+      notes: newExpense.notes || undefined,
+    });
+  };
 
   const remaining = cashflow?.remainingToSpend || 0;
   const remainingColor = remaining >= 0 ? 'text-success-500' : 'text-danger-400';
@@ -253,7 +278,97 @@ export default function DashboardPage({ month }: Props) {
 
       {/* Category forecasts */}
       <div className="mb-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">פירוט הוצאות לפי קטגוריות</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-gray-900">פירוט הוצאות לפי קטגוריות</h3>
+          <button
+            onClick={() => { setNewExpense({ date: new Date().toISOString().slice(0, 10), description: '', charged_amount: '', category_id: '', notes: '' }); setAddExpenseOpen(true); }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary-50 text-accent-blue text-sm font-medium hover:bg-primary-100 transition-colors"
+          >
+            <Plus className="w-4 h-4" strokeWidth={1.5} />
+            הוצאה
+          </button>
+        </div>
+
+        {/* Add expense modal */}
+        {addExpenseOpen && (
+          <>
+            <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40" onClick={() => setAddExpenseOpen(false)} />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-3xl shadow-lg p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+                <h4 className="text-lg font-bold text-gray-900 mb-4">הוצאה חדשה</h4>
+                <div className="space-y-3">
+                  <div>
+                    <label className="label">תיאור</label>
+                    <input
+                      className="input"
+                      placeholder="למשל: סופר, מונית..."
+                      value={newExpense.description}
+                      onChange={(e) => setNewExpense(p => ({ ...p, description: e.target.value }))}
+                      autoFocus
+                    />
+                  </div>
+                  <div>
+                    <label className="label">סכום (₪)</label>
+                    <input
+                      className="input"
+                      type="number"
+                      inputMode="numeric"
+                      placeholder="0"
+                      value={newExpense.charged_amount}
+                      onChange={(e) => setNewExpense(p => ({ ...p, charged_amount: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">קטגוריה</label>
+                    <select
+                      className="input"
+                      value={newExpense.category_id}
+                      onChange={(e) => setNewExpense(p => ({ ...p, category_id: e.target.value }))}
+                    >
+                      <option value="">ללא קטגוריה</option>
+                      {expenseCategories.map((c: Category) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">תאריך</label>
+                    <input
+                      className="input"
+                      type="date"
+                      value={newExpense.date}
+                      onChange={(e) => setNewExpense(p => ({ ...p, date: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">הערה (אופציונלי)</label>
+                    <input
+                      className="input"
+                      placeholder="הערה..."
+                      value={newExpense.notes}
+                      onChange={(e) => setNewExpense(p => ({ ...p, notes: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-5">
+                  <button
+                    onClick={handleAddExpense}
+                    disabled={!newExpense.description || !newExpense.charged_amount || addExpenseMutation.isPending}
+                    className="btn-primary flex-1"
+                  >
+                    {addExpenseMutation.isPending ? 'שומר...' : 'הוסף'}
+                  </button>
+                  <button
+                    onClick={() => setAddExpenseOpen(false)}
+                    className="btn-secondary flex-1"
+                  >
+                    ביטול
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
         {cashflow?.categoryForecasts?.length ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...cashflow.categoryForecasts].sort((a: CategoryForecast, b: CategoryForecast) => {

@@ -4,7 +4,7 @@ import type {
   FixedExpense, ParseResult, ImportResult, UploadRecord,
   DashboardSummary, DashboardForecast, MonthlyTrendPoint, CashFlowData, WeeklyBreakdown,
   PaginatedResponse, CreateCategoryInput, CreateRuleInput,
-  CreateIncomeInput, CreateFixedExpenseInput, UpdateTransactionInput,
+  CreateIncomeInput, CreateFixedExpenseInput, UpdateTransactionInput, CreateTransactionInput,
   AppSettings, VariableIncomeData,
 } from 'shared/src/types';
 
@@ -63,6 +63,11 @@ export async function updateTransaction(id: number, input: UpdateTransactionInpu
 
 export async function deleteTransaction(id: number): Promise<void> {
   await api.delete(`/transactions/${id}`);
+}
+
+export async function createTransaction(input: CreateTransactionInput): Promise<Transaction> {
+  const { data } = await api.post('/transactions', input);
+  return data;
 }
 
 export async function getSimilarTransactions(description: string, categoryId: number, excludeId: number): Promise<Transaction[]> {

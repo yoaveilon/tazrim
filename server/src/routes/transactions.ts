@@ -105,6 +105,27 @@ router.get('/similar', (req: Request, res: Response) => {
   res.json(rows);
 });
 
+// POST /api/transactions
+// Create a manual transaction
+router.post('/', (req: Request, res: Response) => {
+  const db = getDb();
+  const userId = req.user!.id;
+  const { date, description, charged_amount, category_id, notes } = req.body;
+
+  if (!date || !description || charged_amount == null) {
+    res.status(400).json({ error: 'date, description, and charged_amount are required' });
+    return;
+  }
+
+  const result = db.prepare(`
+    INSERT INTO transactions (user_id, date, description, charged_amount, original_amount, original_currency, category_id, notes, type, source_company, classification_method)
+    VALUES (?, ?, ?, ?, ?, 'ILS', ?, ?, 'normal', 'manual', 'manual')
+  `).run(userId, date, description, charged_amount, charged_amount, category_id || null, notes || null);
+
+  const row = db.prepare('SELECT * FROM transactions WHERE id = ?').get(result.lastInsertRowid);
+  res.status(201).json(row);
+});
+
 // POST /api/transactions/batch-classify
 // Updates category for multiple transactions at once
 router.post('/batch-classify', (req: Request, res: Response) => {
