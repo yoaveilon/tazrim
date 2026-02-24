@@ -50,9 +50,9 @@ export default function Sidebar({ isOpen, onClose }: Props) {
         <div className="px-5 pt-6 pb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {/* flow. logo */}
-            <svg width="32" height="32" viewBox="0 0 32 32" className="shrink-0">
-              <circle cx="11" cy="16" r="10" fill="#7C5CFC"/>
-              <path d="M21 6 A10 10 0 0 1 21 26" fill="#7C5CFC"/>
+            <svg width="36" height="28" viewBox="0 0 36 28" className="shrink-0">
+              <circle cx="12" cy="14" r="11" fill="#7C5CFC"/>
+              <path d="M26 3 A11 11 0 0 1 26 25" fill="#7C5CFC" strokeLinecap="round"/>
             </svg>
             <span className="text-xl font-bold text-gray-900 tracking-tight">
               <span className="relative">
