@@ -45,8 +45,30 @@ router.post('/import', (req: Request, res: Response, next: NextFunction) => {
       return;
     }
 
-    const classified = classifyTransactions(transactions, userId);
     const db = getDb();
+
+    // Load exchange rates from user settings for foreign currency conversion
+    const settingsRows = db.prepare(
+      "SELECT key, value FROM settings WHERE user_id = ? AND key IN ('usd_rate', 'eur_rate')"
+    ).all(userId) as any[];
+    const rates: Record<string, number> = { USD: 3.6, EUR: 3.9 };
+    for (const row of settingsRows) {
+      if (row.key === 'usd_rate') rates.USD = parseFloat(row.value) || 3.6;
+      if (row.key === 'eur_rate') rates.EUR = parseFloat(row.value) || 3.9;
+    }
+
+    // Convert foreign currency transactions to ILS using exchange rates
+    for (const txn of transactions) {
+      if (txn.original_currency && txn.original_currency !== 'ILS') {
+        const rate = rates[txn.original_currency];
+        if (rate && txn.charged_amount === txn.original_amount) {
+          // charged_amount equals original_amount means no conversion was done by the card company
+          txn.charged_amount = Math.round(txn.original_amount * rate * 100) / 100;
+        }
+      }
+    }
+
+    const classified = classifyTransactions(transactions, userId);
 
     const insertStmt = db.prepare(`
       INSERT OR IGNORE INTO transactions (

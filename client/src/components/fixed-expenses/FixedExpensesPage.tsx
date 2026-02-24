@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
-  getFixedExpenses, createFixedExpense, deleteFixedExpense, getCategories,
+  getFixedExpenses, createFixedExpense, updateFixedExpense, deleteFixedExpense, getCategories,
   getFixedExpensePayments, markFixedExpensePaid, unmarkFixedExpensePaid,
   autoDetectFixedExpensePayments,
 } from '../../services/api';
@@ -97,6 +97,38 @@ export default function FixedExpensesPage({ month }: Props) {
       toast.success('סימון התשלום בוטל');
     },
   });
+
+  // Inline edit state
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editAmount, setEditAmount] = useState('');
+  const [editCategoryId, setEditCategoryId] = useState('');
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, ...input }: { id: number; amount?: number; category_id?: number }) =>
+      updateFixedExpense(id, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fixed-expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['cashflow'] });
+      setEditingId(null);
+      toast.success('הוצאה קבועה עודכנה');
+    },
+  });
+
+  function startEdit(e: FixedExpense) {
+    setEditingId(e.id);
+    setEditAmount(String(e.amount));
+    setEditCategoryId(e.category_id ? String(e.category_id) : '');
+  }
+
+  function saveEdit(id: number) {
+    const val = parseFloat(editAmount);
+    if (isNaN(val) || val <= 0) return;
+    updateMutation.mutate({
+      id,
+      amount: val,
+      category_id: editCategoryId ? parseInt(editCategoryId) : undefined,
+    });
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -232,6 +264,7 @@ export default function FixedExpensesPage({ month }: Props) {
             {activeExpenses.map((e: FixedExpense) => {
               const isPaid = paidSet.has(e.id);
               const paidAmount = paidAmountMap.get(e.id);
+              const isEditing = editingId === e.id;
 
               return (
                 <div
@@ -260,32 +293,74 @@ export default function FixedExpensesPage({ month }: Props) {
                       <p className={`font-medium ${isPaid ? 'line-through text-gray-400' : ''}`}>
                         {e.name}
                       </p>
-                      <p className="text-xs text-gray-500">
-                        יום {e.billing_day} בחודש
-                        {e.category_name && ` · ${e.category_name}`}
-                      </p>
+                      {isEditing ? (
+                        <select
+                          value={editCategoryId}
+                          onChange={(ev) => setEditCategoryId(ev.target.value)}
+                          className="text-xs border border-gray-200 rounded-lg px-2 py-1 mt-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                        >
+                          <option value="">ללא קטגוריה</option>
+                          {expenseCategories.map((c: Category) => (
+                            <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <p className="text-xs text-gray-500">
+                          יום {e.billing_day} בחודש
+                          {e.category_name && ` · ${e.category_name}`}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    <div className="text-left">
-                      <span className={`font-mono font-medium ${isPaid ? 'text-green-600' : 'text-red-600'}`}>
-                        {formatNIS(paidAmount || e.amount)}
-                      </span>
-                      {isPaid && (
-                        <span className="block text-xs text-green-600">שולם ✓</span>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => {
-                        if (confirm(`למחוק את "${e.name}"?`)) {
-                          deleteMutation.mutate(e.id);
-                        }
-                      }}
-                      className="text-red-400 hover:text-red-600 text-sm opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="מחק"
-                    >
-                      🗑
-                    </button>
+                    {isEditing ? (
+                      <div className="flex items-center gap-1.5" onClick={(ev) => ev.stopPropagation()}>
+                        <input
+                          type="number"
+                          value={editAmount}
+                          onChange={(ev) => setEditAmount(ev.target.value)}
+                          onKeyDown={(ev) => {
+                            if (ev.key === 'Enter') saveEdit(e.id);
+                            if (ev.key === 'Escape') setEditingId(null);
+                          }}
+                          autoFocus
+                          className="w-24 px-2 py-1 border border-blue-300 rounded-xl text-sm font-mono focus:outline-none focus:ring-1 focus:ring-blue-400 text-left"
+                        />
+                        <button onClick={() => saveEdit(e.id)} className="text-green-600 hover:text-green-800">✓</button>
+                        <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600">✕</button>
+                      </div>
+                    ) : (
+                      <div className="text-left">
+                        <span className={`font-mono font-medium ${isPaid ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatNIS(paidAmount || e.amount)}
+                        </span>
+                        {isPaid && (
+                          <span className="block text-xs text-green-600">שולם ✓</span>
+                        )}
+                      </div>
+                    )}
+                    {!isEditing && (
+                      <>
+                        <button
+                          onClick={() => startEdit(e)}
+                          className="text-gray-400 hover:text-blue-600 text-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="ערוך"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(`למחוק את "${e.name}"?`)) {
+                              deleteMutation.mutate(e.id);
+                            }
+                          }}
+                          className="text-red-400 hover:text-red-600 text-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="מחק"
+                        >
+                          🗑
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               );
