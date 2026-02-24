@@ -207,6 +207,37 @@ router.get('/cashflow', (req: Request, res: Response) => {
   `).get(month, userId) as any;
   const manualNoCategory = manualNoCatRow.total;
 
+  // ---- 4c. BUILD WEEK RANGES FOR THE MONTH ----
+  const monthStart = dayjs(month + '-01');
+  const daysInMonth = monthStart.daysInMonth();
+  const weekRanges: { label: string; startDay: number; endDay: number; startDate: string; endDate: string }[] = [];
+  let weekCurrentDay = 1;
+  let weekNumCounter = 1;
+  while (weekCurrentDay <= daysInMonth) {
+    const sd = monthStart.date(weekCurrentDay);
+    let ed = weekCurrentDay;
+    while (ed < daysInMonth && sd.date(ed).day() !== 6) { ed++; }
+    ed = Math.min(ed, daysInMonth);
+    weekRanges.push({
+      label: `שבוע ${weekNumCounter}`,
+      startDay: weekCurrentDay,
+      endDay: ed,
+      startDate: monthStart.date(weekCurrentDay).format('YYYY-MM-DD'),
+      endDate: monthStart.date(ed).format('YYYY-MM-DD'),
+    });
+    weekCurrentDay = ed + 1;
+    weekNumCounter++;
+  }
+
+  // Prepared statement for weekly actual per category
+  const weeklyActualStmt = db.prepare(`
+    SELECT COALESCE(SUM(charged_amount), 0) as total
+    FROM transactions
+    WHERE user_id = ? AND charged_amount > 0
+      AND category_id = ?
+      AND COALESCE(processed_date, date) >= ? AND COALESCE(processed_date, date) <= ?
+  `);
+
   // ---- 5. BUILD CATEGORY FORECASTS ----
   // Collect all expense categories that have either history or actuals
   const allCategories = db.prepare(
@@ -255,6 +286,20 @@ router.get('/cashflow', (req: Request, res: Response) => {
     // Skip categories with no forecast and no actual spend
     if (forecast === 0 && actual === 0) continue;
 
+    // Weekly breakdown for this category
+    const weeklyForecastPerWeek = forecast > 0 ? Math.round(forecast / weekRanges.length) : 0;
+    const weeklyBreakdown = weekRanges.map((week) => {
+      const row = weeklyActualStmt.get(userId, cat.id, week.startDate, week.endDate) as any;
+      const weekActual = row.total;
+      return {
+        label: week.label,
+        startDay: week.startDay,
+        endDay: week.endDay,
+        actual: weekActual,
+        remaining: Math.max(0, weeklyForecastPerWeek - weekActual),
+      };
+    });
+
     categoryForecasts.push({
       category_id: cat.id,
       name: cat.name,
@@ -264,6 +309,7 @@ router.get('/cashflow', (req: Request, res: Response) => {
       actual,
       difference: forecast - actual,
       monthsOfData,
+      weeklyBreakdown,
     });
 
     totalForecast += forecast;

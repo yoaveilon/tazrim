@@ -274,18 +274,17 @@ export default function DashboardPage({ month }: Props) {
 
 // --- Sub-component: Category card ---
 function CategoryCard({ cat, onUpdateForecast }: { cat: CategoryForecast; onUpdateForecast: (budget: number | null) => void }) {
+  const [expanded, setExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
-  const [expanded, setExpanded] = useState(false);
 
   const percent = cat.forecast > 0 ? Math.min(100, Math.round((cat.actual / cat.forecast) * 100)) : (cat.actual > 0 ? 100 : 0);
   const isOver = cat.difference < 0;
   const noForecast = cat.monthsOfData === 0;
-  const isManualOverride = cat.monthsOfData === -1;
 
-  // Badge label
-  const badgeLabel = isOver ? 'חריגה קלה' : 'עומד ביעד';
-  const badgeColor = isOver ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600';
+  // Determine current week
+  const today = new Date();
+  const currentDay = today.getDate();
 
   function startEditing(e: React.MouseEvent) {
     e.stopPropagation();
@@ -308,111 +307,133 @@ function CategoryCard({ cat, onUpdateForecast }: { cat: CategoryForecast; onUpda
     if (e.key === 'Escape') setIsEditing(false);
   }
 
+  // Progress bar color
+  const barColor = isOver
+    ? '#EF4444'
+    : noForecast
+      ? '#D1D5DB'
+      : percent > 90 ? '#EF4444' : percent > 70 ? '#F97316' : '#9CA3AF';
+
   return (
     <div className="bg-white rounded-3xl border border-gray-100/80 shadow-card hover:shadow-card-hover transition-all duration-200 overflow-hidden">
-      {/* Header: badge */}
-      <div className="px-5 pt-5 pb-2">
-        <span className={`text-[11px] font-medium px-2.5 py-1 rounded-full ${badgeColor}`}>
-          {badgeLabel}
-        </span>
+      {/* Header: category name + 3 dots menu */}
+      <div className="px-5 pt-5 pb-3 flex items-start justify-between">
+        <h4 className="font-bold text-xl text-gray-900">{cat.name}</h4>
+        <button
+          onClick={startEditing}
+          className="text-gray-400 hover:text-gray-600 p-1 -mt-0.5"
+          title="ערוך צפי"
+        >
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="5" r="1.5" />
+            <circle cx="12" cy="12" r="1.5" />
+            <circle cx="12" cy="19" r="1.5" />
+          </svg>
+        </button>
       </div>
 
-      {/* Category name */}
-      <div className="px-5 pb-1">
-        <h4 className="font-bold text-base text-gray-900">{cat.name}</h4>
-        <p className="text-[11px] text-gray-400 mt-0.5">
-          {isManualOverride ? 'ידני' : noForecast ? 'הוצאה משתנה' : `הוצאה ${cat.monthsOfData > 0 ? 'משתנה' : 'קבועה'} • ${cat.monthsOfData > 0 ? 'אשראי' : 'מזומן'}`}
-        </p>
-      </div>
+      {/* Editing inline */}
+      {isEditing && (
+        <div className="px-5 pb-3 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <span className="text-xs text-gray-500">צפי:</span>
+          <input
+            type="number"
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={handleSave}
+            autoFocus
+            className="w-24 px-2 py-1 border border-blue-300 rounded-xl text-sm font-mono focus:outline-none focus:ring-1 focus:ring-blue-400"
+            placeholder="אוטו"
+          />
+          <button onClick={handleSave} className="text-green-600 hover:text-green-800">✓</button>
+          <button onClick={() => setIsEditing(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+        </div>
+      )}
 
-      {/* Amount */}
-      <div className="px-5 pt-2 pb-4">
-        {isEditing ? (
-          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-            <input
-              type="number"
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onBlur={handleSave}
-              autoFocus
-              className="w-28 px-3 py-1.5 border border-blue-300 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="אוטו"
-            />
-            <button onClick={handleSave} className="text-green-600 hover:text-green-800" title="שמור">✓</button>
-            <button onClick={() => setIsEditing(false)} className="text-gray-400 hover:text-gray-600" title="ביטול">✕</button>
+      {/* Amounts row: יצא (right) + מומלץ להוציא עד (left) */}
+      <div className="px-5 pb-2">
+        <div className="flex items-baseline justify-between">
+          <div className="text-left">
+            <p className="text-xs text-gray-400 mb-0.5">מומלץ להוציא עד</p>
+            <p className="text-sm text-gray-500">
+              {noForecast ? '—' : formatNIS(cat.forecast)}
+            </p>
           </div>
-        ) : (
-          <p className="text-2xl font-bold text-gray-900">
-            {formatNIS(cat.actual)}
-          </p>
-        )}
+          <div className="text-right">
+            <p className="text-xs text-gray-400 mb-0.5">יצא</p>
+            <p className={`text-xl font-bold ${isOver ? 'text-red-600' : 'text-gray-900'}`}>
+              {formatNIS(cat.actual)}
+            </p>
+          </div>
+        </div>
       </div>
 
-      {/* Expand button */}
+      {/* Progress bar */}
+      <div className="px-5 pb-4">
+        <div className="w-full rounded-full h-2.5 overflow-hidden bg-gray-100">
+          <div
+            className="h-2.5 rounded-full transition-all duration-500"
+            style={{
+              width: noForecast ? '100%' : `${Math.min(percent, 100)}%`,
+              backgroundColor: barColor,
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Weekly breakdown toggle */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full px-5 py-3 border-t border-gray-50 flex items-center justify-between text-sm text-gray-400 hover:bg-gray-50/80 transition-colors"
+        className="w-full px-5 py-3 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500 hover:bg-gray-50/80 transition-colors"
       >
-        <svg className={`w-5 h-5 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className={`w-4 h-4 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
+        <span className="font-semibold">פירוט שבועי</span>
       </button>
 
-      {expanded && (
-        <div className="px-5 pb-4 border-t border-gray-50 bg-gray-50/30 space-y-2.5 text-sm">
-          <div className="flex justify-between pt-3">
-            <span className="text-gray-500">צפי חודשי</span>
-            <button onClick={startEditing} className="font-mono font-medium text-accent-blue hover:underline cursor-pointer">
-              {noForecast ? '—' : formatNIS(cat.forecast)}
-            </button>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">ניצול</span>
-            <span className={`font-mono font-medium ${isOver ? 'text-red-500' : 'text-green-600'}`}>
-              {noForecast ? '—' : `${percent}%`}
-            </span>
-          </div>
-          {!noForecast && (
-            <div className="flex justify-between">
-              <span className="text-gray-500">{isOver ? 'חריגה' : 'נותר'}</span>
-              <span className={`font-mono font-medium ${isOver ? 'text-red-500' : 'text-green-600'}`}>
-                {formatNIS(Math.abs(cat.difference))}
-              </span>
-            </div>
-          )}
-
-          {/* Progress bar */}
-          <div className="w-full rounded-full h-2 overflow-hidden bg-gray-200 mt-1">
-            <div
-              className="h-2 rounded-full transition-all duration-500"
-              style={{
-                width: noForecast ? '100%' : `${Math.min(percent, 100)}%`,
-                background: isOver
-                  ? '#EF4444'
-                  : noForecast
-                    ? '#D1D5DB'
-                    : 'linear-gradient(to left, #818CF8, #4361EE)',
-              }}
-            />
+      {/* Weekly breakdown content */}
+      {expanded && cat.weeklyBreakdown && (
+        <div className="border-t border-gray-100">
+          {/* Column headers */}
+          <div className="px-5 py-2 flex items-center text-xs text-gray-400 border-b border-gray-50">
+            <span className="flex-1 text-right"></span>
+            <span className="w-24 text-center">יצא</span>
+            <span className="w-24 text-center">נשאר להוציא</span>
+            <span className="w-6"></span>
           </div>
 
-          <div className="flex gap-2 pt-2">
-            <button
-              onClick={startEditing}
-              className="flex-1 text-xs bg-primary-50 text-accent-blue hover:bg-primary-100 rounded-xl py-2 transition-colors font-medium"
-            >
-              ערוך צפי
-            </button>
-            {isManualOverride && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onUpdateForecast(null); }}
-                className="flex-1 text-xs bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-xl py-2 transition-colors font-medium"
+          {cat.weeklyBreakdown.map((week, idx) => {
+            const isCurrentWeek = currentDay >= week.startDay && currentDay <= week.endDay;
+            return (
+              <div
+                key={idx}
+                className={`px-5 py-3 flex items-center border-b border-gray-50 last:border-0 ${isCurrentWeek ? 'bg-gray-50/50' : ''}`}
               >
-                חזור לאוטומטי
-              </button>
-            )}
-          </div>
+                <div className="flex-1 text-right">
+                  {isCurrentWeek ? (
+                    <span className="inline-block bg-gray-200 text-gray-700 text-xs font-semibold px-3 py-1 rounded-full">
+                      {week.label}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-gray-700 font-medium">{week.label}</span>
+                  )}
+                </div>
+                <span className="w-24 text-center font-mono text-sm font-bold text-gray-900">
+                  {formatNIS(week.actual)}
+                </span>
+                <span className="w-24 text-center font-mono text-sm text-gray-400">
+                  {formatNIS(week.remaining)}
+                </span>
+                <span className="w-6 flex justify-center">
+                  <svg className="w-3.5 h-3.5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </span>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

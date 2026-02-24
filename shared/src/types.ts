@@ -252,6 +252,14 @@ export interface CashFlowData {
   remainingToSpend: number;
 }
 
+export interface CategoryWeekData {
+  label: string;
+  startDay: number;
+  endDay: number;
+  actual: number;
+  remaining: number;
+}
+
 export interface CategoryForecast {
   category_id: number;
   name: string;
@@ -261,6 +269,7 @@ export interface CategoryForecast {
   actual: number;         // Actual spend this month
   difference: number;     // forecast - actual (positive = under budget)
   monthsOfData: number;   // How many months of data used for avg
+  weeklyBreakdown?: CategoryWeekData[];
 }
 
 export interface WeeklyBreakdown {
