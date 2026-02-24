@@ -9,6 +9,7 @@ import {
 import { formatNIS } from '../../utils/currency';
 import { formatMonthHebrew } from '../../utils/date';
 import type { FixedExpense, Category } from 'shared/src/types';
+import { Check, X, Pencil, Trash2 } from 'lucide-react';
 
 interface Props {
   month: string;
@@ -287,7 +288,7 @@ export default function FixedExpensesPage({ month }: Props) {
                       }`}
                       title={isPaid ? 'בטל סימון תשלום' : 'סמן כשולם'}
                     >
-                      ✓
+                      <Check className="w-4 h-4" strokeWidth={2} />
                     </button>
                     <div>
                       <p className={`font-medium ${isPaid ? 'line-through text-gray-400' : ''}`}>
@@ -326,8 +327,8 @@ export default function FixedExpensesPage({ month }: Props) {
                           autoFocus
                           className="w-24 px-2 py-1 border border-blue-300 rounded-xl text-sm font-mono focus:outline-none focus:ring-1 focus:ring-blue-400 text-left"
                         />
-                        <button onClick={() => saveEdit(e.id)} className="text-green-600 hover:text-green-800">✓</button>
-                        <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600">✕</button>
+                        <button onClick={() => saveEdit(e.id)} className="text-green-600 hover:text-green-800"><Check className="w-4 h-4" strokeWidth={1.5} /></button>
+                        <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" strokeWidth={1.5} /></button>
                       </div>
                     ) : (
                       <div className="text-left">
@@ -343,10 +344,10 @@ export default function FixedExpensesPage({ month }: Props) {
                       <>
                         <button
                           onClick={() => startEdit(e)}
-                          className="text-gray-400 hover:text-blue-600 text-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"
                           title="ערוך"
                         >
-                          ✏️
+                          <Pencil className="w-4 h-4" strokeWidth={1.5} />
                         </button>
                         <button
                           onClick={() => {
@@ -354,10 +355,10 @@ export default function FixedExpensesPage({ month }: Props) {
                               deleteMutation.mutate(e.id);
                             }
                           }}
-                          className="text-red-400 hover:text-red-600 text-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
                           title="מחק"
                         >
-                          🗑
+                          <Trash2 className="w-4 h-4" strokeWidth={1.5} />
                         </button>
                       </>
                     )}

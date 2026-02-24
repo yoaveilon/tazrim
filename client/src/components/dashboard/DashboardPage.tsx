@@ -5,6 +5,7 @@ import { getCashFlow, setForecastOverride, getIncomeRecords, updateIncomeRecord,
 import { formatNIS } from '../../utils/currency';
 import { formatMonthHebrew } from '../../utils/date';
 import type { CategoryForecast, IncomeRecord } from 'shared/src/types';
+import { ChevronDown, MoreVertical, Check, X } from 'lucide-react';
 
 interface Props {
   month: string;
@@ -100,7 +101,7 @@ export default function DashboardPage({ month }: Props) {
         >
           <div className="px-5 pt-5 pb-1 flex items-center justify-between">
             <span className="text-xs font-semibold text-accent-blue tracking-wide">הכנסה צפויה</span>
-            <span className={`text-xs text-gray-400 transition-transform duration-200 ${incomeOpen ? 'rotate-180' : ''}`}>▾</span>
+            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${incomeOpen ? 'rotate-180' : ''}`} strokeWidth={1.5} />
           </div>
           <div className="px-5 pb-5">
             <p className="text-2xl sm:text-3xl font-bold text-gray-900">
@@ -175,8 +176,8 @@ export default function DashboardPage({ month }: Props) {
                             }
                           }}
                           className="text-green-600 hover:text-green-800"
-                        >✓</button>
-                        <button onClick={() => setEditingIncomeId(null)} className="text-gray-400 hover:text-gray-600">✕</button>
+                        ><Check className="w-4 h-4" strokeWidth={1.5} /></button>
+                        <button onClick={() => setEditingIncomeId(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" strokeWidth={1.5} /></button>
                       </div>
                     ) : (
                       <button
@@ -334,11 +335,7 @@ function CategoryCard({ cat, onUpdateForecast }: { cat: CategoryForecast; onUpda
           className="text-gray-400 hover:text-gray-600 p-1 -mt-0.5"
           title="ערוך צפי"
         >
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-            <circle cx="12" cy="5" r="1.5" />
-            <circle cx="12" cy="12" r="1.5" />
-            <circle cx="12" cy="19" r="1.5" />
-          </svg>
+          <MoreVertical className="w-5 h-5" strokeWidth={1.5} />
         </button>
       </div>
 
@@ -356,8 +353,8 @@ function CategoryCard({ cat, onUpdateForecast }: { cat: CategoryForecast; onUpda
             className="w-24 px-2 py-1 border border-blue-300 rounded-xl text-sm font-mono focus:outline-none focus:ring-1 focus:ring-blue-400"
             placeholder="אוטו"
           />
-          <button onClick={handleSave} className="text-green-600 hover:text-green-800">✓</button>
-          <button onClick={() => setIsEditing(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+          <button onClick={handleSave} className="text-green-600 hover:text-green-800"><Check className="w-4 h-4" strokeWidth={1.5} /></button>
+          <button onClick={() => setIsEditing(false)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" strokeWidth={1.5} /></button>
         </div>
       )}
 
@@ -397,9 +394,7 @@ function CategoryCard({ cat, onUpdateForecast }: { cat: CategoryForecast; onUpda
         onClick={() => setExpanded(!expanded)}
         className="w-full px-5 py-3 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500 hover:bg-gray-50/80 transition-colors"
       >
-        <svg className={`w-4 h-4 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} strokeWidth={1.5} />
         <span className="font-semibold">פירוט שבועי</span>
       </button>
 
@@ -441,9 +436,7 @@ function CategoryCard({ cat, onUpdateForecast }: { cat: CategoryForecast; onUpda
                   </span>
                   <span className="w-6 flex justify-center">
                     {hasTransactions && (
-                      <svg className={`w-3.5 h-3.5 text-gray-300 transition-transform duration-200 ${isWeekExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
+                      <ChevronDown className={`w-3.5 h-3.5 text-gray-300 transition-transform duration-200 ${isWeekExpanded ? 'rotate-180' : ''}`} strokeWidth={1.5} />
                     )}
                   </span>
                 </button>

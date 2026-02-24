@@ -1,4 +1,5 @@
 import { formatMonthHebrew, getPrevMonth, getNextMonth } from '../../utils/date';
+import { ChevronRight, ChevronLeft, Menu } from 'lucide-react';
 
 interface Props {
   currentMonth: string;
@@ -20,9 +21,7 @@ export default function Header({ currentMonth, onMonthChange, onMenuToggle }: Pr
             className="p-1 hover:bg-white/80 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
             title="חודש קודם"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
+            <ChevronRight className="w-4 h-4" strokeWidth={1.5} />
           </button>
           <span className="text-sm font-semibold text-gray-700 min-w-[100px] text-center">
             {formatMonthHebrew(currentMonth)}
@@ -32,9 +31,7 @@ export default function Header({ currentMonth, onMonthChange, onMenuToggle }: Pr
             className="p-1 hover:bg-white/80 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
             title="חודש הבא"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
+            <ChevronLeft className="w-4 h-4" strokeWidth={1.5} />
           </button>
         </div>
 
@@ -44,9 +41,7 @@ export default function Header({ currentMonth, onMonthChange, onMenuToggle }: Pr
           className="lg:hidden p-2 hover:bg-white rounded-xl transition-colors text-gray-500"
           title="תפריט"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
+          <Menu className="w-6 h-6" strokeWidth={1.5} />
         </button>
       </div>
     </header>

@@ -2,17 +2,22 @@ import { NavLink } from 'react-router-dom';
 import { NAV_ITEMS } from '../../utils/constants';
 import { useAuth } from '../auth/AuthContext';
 import clsx from 'clsx';
+import {
+  LayoutDashboard, PieChart, Receipt, Upload, TrendingUp,
+  CalendarDays, FolderOpen, Tags, Settings, X, LogOut,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
-const ICONS: Record<string, string> = {
-  LayoutDashboard: '📊',
-  PieChart: '📈',
-  Receipt: '💳',
-  Upload: '📤',
-  TrendingUp: '💰',
-  Calendar: '📅',
-  FolderOpen: '📂',
-  Tags: '🏷️',
-  Settings: '⚙️',
+const ICONS: Record<string, LucideIcon> = {
+  LayoutDashboard,
+  PieChart,
+  Receipt,
+  Upload,
+  TrendingUp,
+  Calendar: CalendarDays,
+  FolderOpen,
+  Tags,
+  Settings,
 };
 
 interface Props {
@@ -53,7 +58,7 @@ export default function Sidebar({ isOpen, onClose }: Props) {
             onClick={onClose}
             className="lg:hidden p-1.5 hover:bg-gray-100 rounded-xl text-gray-400 transition-colors"
           >
-            ✕
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -74,7 +79,7 @@ export default function Sidebar({ isOpen, onClose }: Props) {
                 )
               }
             >
-              <span className="text-base w-6 text-center">{ICONS[item.icon]}</span>
+              {(() => { const Icon = ICONS[item.icon]; return Icon ? <Icon className="w-5 h-5 shrink-0" strokeWidth={1.5} /> : null; })()}
               <span>{item.label}</span>
             </NavLink>
           ))}
@@ -103,8 +108,9 @@ export default function Sidebar({ isOpen, onClose }: Props) {
             </div>
             <button
               onClick={logout}
-              className="w-full mt-2 text-xs text-gray-400 hover:text-red-500 py-1.5 rounded-xl transition-colors text-center"
+              className="w-full mt-2 text-xs text-gray-400 hover:text-red-500 py-1.5 rounded-xl transition-colors flex items-center justify-center gap-1.5"
             >
+              <LogOut className="w-3.5 h-3.5" strokeWidth={1.5} />
               התנתק
             </button>
           </div>
