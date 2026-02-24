@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 36 28">
-  <circle cx="12" cy="14" r="11" fill="#7C5CFC"/>
-  <path d="M26 3 A11 11 0 0 1 26 25" fill="#7C5CFC"/>
+<svg width="32" height="32" viewBox="0 0 353 353" fill="none" xmlns="http://www.w3.org/2000/svg">
+<circle cx="109.5" cy="176.5" r="86.5" transform="rotate(-90 109.5 176.5)" fill="#614EEE"/>
+<path d="M244.056 263C266.997 263 288.998 253.887 305.22 237.665C321.442 221.443 330.556 199.441 330.556 176.5C330.556 153.559 321.442 131.557 305.22 115.335C288.998 99.1134 266.997 90 244.056 90L244.056 176.5L244.056 263Z" fill="#614EEE"/>
 </svg>
