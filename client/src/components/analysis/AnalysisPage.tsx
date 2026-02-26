@@ -6,7 +6,7 @@ import type { CategoryForecast } from 'shared/src/types';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend,
-  LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  LineChart, Line,
 } from 'recharts';
 import CategoryIcon from '../ui/CategoryIcon';
 
@@ -73,14 +73,6 @@ export default function AnalysisPage({ month }: Props) {
       color: c.color,
     })) || [];
 
-  // Category comparison radar data (normalize to 0-100 for radar)
-  const maxSpend = Math.max(...pieData.map((c: CategoryForecast) => c.actual), 1);
-  const radarData = pieData.slice(0, 8).map((c: CategoryForecast) => ({
-    name: c.name,
-    actual: Math.round((c.actual / maxSpend) * 100),
-    fullMark: 100,
-  }));
-
   // Monthly comparison data: current month vs previous months averages
   const monthlyComparison = trends?.months?.length
     ? (() => {
@@ -119,13 +111,13 @@ export default function AnalysisPage({ month }: Props) {
 
       {/* Summary cards */}
       {monthlyComparison && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           <div className="card">
             <p className="text-xs text-gray-500 mb-1">הוצאות החודש</p>
             <p className="text-xl font-bold text-danger-400">{formatNIS(monthlyComparison.current.expenses)}</p>
           </div>
           <div className="card">
-            <p className="text-xs text-gray-500 mb-1">ממוצע חודשי</p>
+            <p className="text-xs text-gray-500 mb-1">ממוצע הוצאות חודשי</p>
             <p className="text-xl font-bold text-gray-600">{formatNIS(monthlyComparison.avgExpenses)}</p>
           </div>
           <div className="card">
@@ -140,7 +132,15 @@ export default function AnalysisPage({ month }: Props) {
             )}
           </div>
           <div className="card">
-            <p className="text-xs text-gray-500 mb-1">מספר קטגוריות פעילות</p>
+            <p className="text-xs text-gray-500 mb-1">משכורת ממוצעת</p>
+            {monthlyComparison.avgIncome > 0 ? (
+              <p className="text-xl font-bold text-success-500">{formatNIS(monthlyComparison.avgIncome)}</p>
+            ) : (
+              <p className="text-xl font-bold text-gray-400">—</p>
+            )}
+          </div>
+          <div className="card">
+            <p className="text-xs text-gray-500 mb-1">קטגוריות פעילות</p>
             <p className="text-xl font-bold text-info-500">{pieData.length}</p>
           </div>
         </div>
@@ -232,57 +232,37 @@ export default function AnalysisPage({ month }: Props) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Budget efficiency */}
-        <div className="card">
-          <h3 className="font-semibold mb-4">יעילות תקציבית (% ניצול מהצפי)</h3>
-          {efficiencyData.length ? (
-            <div className="space-y-3">
-              {efficiencyData
-                .sort((a: any, b: any) => b.efficiency - a.efficiency)
-                .map((item: any, i: number) => (
-                  <div key={i}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm">{item.name}</span>
-                      <span className={`text-sm font-mono font-medium ${
-                        item.efficiency > 100 ? 'text-danger-400' : item.efficiency > 80 ? 'text-warning-500' : 'text-success-500'
-                      }`}>
-                        {item.efficiency}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                      <div
-                        className={`h-2.5 rounded-full transition-all ${
-                          item.efficiency > 100 ? 'bg-danger-400' : item.efficiency > 80 ? 'bg-warning-500' : 'bg-success-500'
-                        }`}
-                        style={{ width: `${Math.min(item.efficiency, 100)}%` }}
-                      />
-                    </div>
+      {/* Budget efficiency */}
+      <div className="card mb-6">
+        <h3 className="font-semibold mb-4">יעילות תקציבית (% ניצול מהצפי)</h3>
+        {efficiencyData.length ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
+            {efficiencyData
+              .sort((a: any, b: any) => b.efficiency - a.efficiency)
+              .map((item: any, i: number) => (
+                <div key={i}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm">{item.name}</span>
+                    <span className={`text-sm font-mono font-medium ${
+                      item.efficiency > 100 ? 'text-danger-400' : item.efficiency > 80 ? 'text-warning-500' : 'text-success-500'
+                    }`}>
+                      {item.efficiency}%
+                    </span>
                   </div>
-                ))}
-            </div>
-          ) : (
-            <p className="text-gray-500 text-center py-12">אין נתוני תחזית להשוואה</p>
-          )}
-        </div>
-
-        {/* Spending radar */}
-        <div className="card">
-          <h3 className="font-semibold mb-4">פרופיל הוצאות</h3>
-          {radarData.length >= 3 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
-                <PolarGrid stroke="#e5e7eb" />
-                <PolarAngleAxis dataKey="name" tick={{ fontSize: 11, fill: '#6b7280' }} />
-                <PolarRadiusAxis tick={false} axisLine={false} />
-                <Radar name="הוצאות" dataKey="actual" stroke="#7C5CFC" fill="#7C5CFC" fillOpacity={0.3} strokeWidth={2} />
-                <Tooltip content={<ChartTooltip />} />
-              </RadarChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-gray-500 text-center py-12">נדרשות לפחות 3 קטגוריות פעילות</p>
-          )}
-        </div>
+                  <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                    <div
+                      className={`h-2.5 rounded-full transition-all ${
+                        item.efficiency > 100 ? 'bg-danger-400' : item.efficiency > 80 ? 'bg-warning-500' : 'bg-success-500'
+                      }`}
+                      style={{ width: `${Math.min(item.efficiency, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+          </div>
+        ) : (
+          <p className="text-gray-500 text-center py-12">אין נתוני תחזית להשוואה</p>
+        )}
       </div>
 
       {/* Monthly trend - full: income, expenses, balance */}
