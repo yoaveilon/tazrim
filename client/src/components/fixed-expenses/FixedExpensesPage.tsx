@@ -8,7 +8,7 @@ import {
 } from '../../services/api';
 import { formatNIS } from '../../utils/currency';
 import { formatMonthHebrew } from '../../utils/date';
-import type { FixedExpense, Category } from 'shared/src/types';
+import type { FixedExpense, FixedExpenseFrequency, Category } from 'shared/src/types';
 import { Check, X, Pencil, Trash2 } from 'lucide-react';
 
 interface Props {
@@ -21,6 +21,7 @@ export default function FixedExpensesPage({ month }: Props) {
   const [amount, setAmount] = useState('');
   const [billingDay, setBillingDay] = useState('1');
   const [categoryId, setCategoryId] = useState('');
+  const [frequency, setFrequency] = useState<FixedExpenseFrequency>('monthly');
   const queryClient = useQueryClient();
 
   const { data: expenses } = useQuery({
@@ -67,6 +68,7 @@ export default function FixedExpensesPage({ month }: Props) {
       setAmount('');
       setBillingDay('1');
       setCategoryId('');
+      setFrequency('monthly');
       toast.success('הוצאה קבועה נוספה');
     },
   });
@@ -138,12 +140,24 @@ export default function FixedExpensesPage({ month }: Props) {
       amount: parseFloat(amount),
       billing_day: parseInt(billingDay),
       category_id: categoryId ? parseInt(categoryId) : undefined,
+      frequency,
+      start_month: frequency === 'bimonthly' ? month : undefined,
     });
   };
 
   const expenseCategories = categories?.filter((c: Category) => c.is_expense) || [];
   const activeExpenses = expenses?.filter((e: FixedExpense) => e.is_active) || [];
-  const totalMonthly = activeExpenses.reduce((sum: number, e: FixedExpense) => sum + e.amount, 0);
+
+  function isExpenseDueInMonth(e: FixedExpense): boolean {
+    if (e.frequency !== 'bimonthly' || !e.start_month) return true;
+    const [sy, sm] = e.start_month.split('-').map(Number);
+    const [ty, tm] = month.split('-').map(Number);
+    const diff = (ty - sy) * 12 + (tm - sm);
+    return diff % 2 === 0;
+  }
+
+  const dueExpenses = activeExpenses.filter(isExpenseDueInMonth);
+  const totalMonthly = dueExpenses.reduce((sum: number, e: FixedExpense) => sum + e.amount, 0);
 
   // Build a set of paid expense IDs for current month
   const paidSet = new Set<number>();
@@ -155,7 +169,7 @@ export default function FixedExpensesPage({ month }: Props) {
     }
   }
 
-  const paidTotal = activeExpenses
+  const paidTotal = dueExpenses
     .filter((e: FixedExpense) => paidSet.has(e.id))
     .reduce((sum: number, e: FixedExpense) => sum + (paidAmountMap.get(e.id) || e.amount), 0);
 
@@ -181,7 +195,7 @@ export default function FixedExpensesPage({ month }: Props) {
       {showForm && (
         <form onSubmit={handleSubmit} className="card mb-6">
           <h3 className="font-semibold mb-4">הוצאה קבועה חדשה</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div>
               <label className="label">שם</label>
               <input
@@ -216,6 +230,17 @@ export default function FixedExpensesPage({ month }: Props) {
               />
             </div>
             <div>
+              <label className="label">תדירות</label>
+              <select
+                value={frequency}
+                onChange={(e) => setFrequency(e.target.value as FixedExpenseFrequency)}
+                className="input"
+              >
+                <option value="monthly">כל חודש</option>
+                <option value="bimonthly">כל חודשיים</option>
+              </select>
+            </div>
+            <div>
               <label className="label">קטגוריה</label>
               <select
                 value={categoryId}
@@ -238,7 +263,7 @@ export default function FixedExpensesPage({ month }: Props) {
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4 mb-4">
         <div className="card">
-          <p className="text-xs text-gray-500 mb-1">סה"כ חודשי</p>
+          <p className="text-xs text-gray-500 mb-1">סה"כ {formatMonthHebrew(month)}</p>
           <p className="text-xl font-bold text-danger-400">{formatNIS(totalMonthly)}</p>
         </div>
         <div className="card">
@@ -266,12 +291,15 @@ export default function FixedExpensesPage({ month }: Props) {
               const isPaid = paidSet.has(e.id);
               const paidAmount = paidAmountMap.get(e.id);
               const isEditing = editingId === e.id;
+              const isDue = isExpenseDueInMonth(e);
 
               return (
                 <div
                   key={e.id}
                   className={`group flex items-center justify-between py-3 px-3 rounded-lg border transition-colors ${
-                    isPaid
+                    !isDue
+                      ? 'bg-gray-50 border-gray-100 opacity-50'
+                      : isPaid
                       ? 'bg-success-50 border-success-200'
                       : 'bg-white border-gray-100 hover:border-gray-200'
                   }`}
@@ -308,6 +336,8 @@ export default function FixedExpensesPage({ month }: Props) {
                       ) : (
                         <p className="text-xs text-gray-500">
                           יום {e.billing_day} בחודש
+                          {e.frequency === 'bimonthly' && ' · כל חודשיים'}
+                          {!isDue && ' · לא חל החודש'}
                           {e.category_name && ` · ${e.category_name}`}
                         </p>
                       )}

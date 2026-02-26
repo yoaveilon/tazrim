@@ -135,6 +135,8 @@ export interface IncomeRecord {
 }
 
 // --- Fixed Expenses ---
+export type FixedExpenseFrequency = 'monthly' | 'bimonthly';
+
 export interface FixedExpense {
   id: number;
   name: string;
@@ -143,6 +145,8 @@ export interface FixedExpense {
   category_id: number | null;
   category_name?: string;
   is_active: boolean;
+  frequency: FixedExpenseFrequency;
+  start_month: string | null;
   notes: string | null;
   created_at: string;
 }
@@ -152,6 +156,8 @@ export interface CreateFixedExpenseInput {
   amount: number;
   billing_day: number;
   category_id?: number;
+  frequency?: FixedExpenseFrequency;
+  start_month?: string;
   notes?: string;
 }
 

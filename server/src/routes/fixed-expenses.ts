@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { getDb } from '../db/connection.js';
+import { isExpenseDueInMonth } from '../utils/expense-frequency.js';
 
 const router = Router();
 
@@ -21,17 +22,20 @@ router.get('/', (req: Request, res: Response) => {
 router.post('/', (req: Request, res: Response) => {
   const db = getDb();
   const userId = req.user!.id;
-  const { name, amount, billing_day, category_id, notes } = req.body;
+  const { name, amount, billing_day, category_id, notes, frequency, start_month } = req.body;
 
   if (!name || amount === undefined || !billing_day) {
     res.status(400).json({ error: 'שם, סכום ויום חיוב נדרשים' });
     return;
   }
 
+  const freq = frequency || 'monthly';
+  const sm = freq === 'bimonthly' ? (start_month || null) : null;
+
   const result = db.prepare(`
-    INSERT INTO fixed_expenses (name, amount, billing_day, category_id, notes, user_id)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(name, amount, billing_day, category_id || null, notes || null, userId);
+    INSERT INTO fixed_expenses (name, amount, billing_day, category_id, notes, frequency, start_month, user_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(name, amount, billing_day, category_id || null, notes || null, freq, sm, userId);
 
   const created = db.prepare(`
     SELECT fe.*, c.name as category_name
@@ -47,7 +51,7 @@ router.post('/', (req: Request, res: Response) => {
 router.patch('/:id', (req: Request, res: Response) => {
   const db = getDb();
   const userId = req.user!.id;
-  const { name, amount, billing_day, category_id, is_active, notes } = req.body;
+  const { name, amount, billing_day, category_id, is_active, notes, frequency, start_month } = req.body;
 
   const updates: string[] = [];
   const params: any[] = [];
@@ -58,6 +62,8 @@ router.patch('/:id', (req: Request, res: Response) => {
   if (category_id !== undefined) { updates.push('category_id = ?'); params.push(category_id || null); }
   if (is_active !== undefined) { updates.push('is_active = ?'); params.push(is_active ? 1 : 0); }
   if (notes !== undefined) { updates.push('notes = ?'); params.push(notes); }
+  if (frequency !== undefined) { updates.push('frequency = ?'); params.push(frequency); }
+  if (start_month !== undefined) { updates.push('start_month = ?'); params.push(start_month || null); }
 
   if (updates.length === 0) {
     res.status(400).json({ error: 'אין שדות לעדכון' });
@@ -118,6 +124,7 @@ router.post('/auto-detect', (req: Request, res: Response) => {
 
   for (const fe of fixedExpenses) {
     if (alreadyPaid.has(fe.id)) continue;
+    if (!isExpenseDueInMonth(fe.frequency, fe.start_month, month)) continue;
 
     // Normalize the fixed expense name for matching
     const feName = fe.name.trim().toLowerCase();

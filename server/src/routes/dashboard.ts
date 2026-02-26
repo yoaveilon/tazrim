@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { getDb } from '../db/connection.js';
+import { isExpenseDueInMonth } from '../utils/expense-frequency.js';
 import dayjs from 'dayjs';
 
 const router = Router();
@@ -130,16 +131,17 @@ router.get('/cashflow', (req: Request, res: Response) => {
   `).all(userId, month) as any[];
 
   // ---- 3. FIXED EXPENSES PER CATEGORY ----
-  const fixedExpenses = db.prepare(`
-    SELECT category_id, SUM(amount) as total
+  // Fetch all active fixed expenses and filter by frequency (bimonthly check)
+  const allFixedExpenses = db.prepare(`
+    SELECT category_id, amount, frequency, start_month
     FROM fixed_expenses
     WHERE is_active = 1 AND user_id = ? AND category_id IS NOT NULL
-    GROUP BY category_id
   `).all(userId) as any[];
 
   const fixedByCategory = new Map<number, number>();
-  for (const fe of fixedExpenses) {
-    fixedByCategory.set(fe.category_id, fe.total);
+  for (const fe of allFixedExpenses) {
+    if (!isExpenseDueInMonth(fe.frequency, fe.start_month, month)) continue;
+    fixedByCategory.set(fe.category_id, (fixedByCategory.get(fe.category_id) || 0) + fe.amount);
   }
 
   // ---- 3b. MANUAL FORECAST OVERRIDES ----
@@ -154,13 +156,18 @@ router.get('/cashflow', (req: Request, res: Response) => {
     overrideMap.set(o.category_id, o.monthly_budget);
   }
 
-  // Fixed expenses without category
-  const fixedNoCatRow = db.prepare(`
-    SELECT COALESCE(SUM(amount), 0) as total
+  // Fixed expenses without category (filter by frequency)
+  const fixedNoCatRows = db.prepare(`
+    SELECT amount, frequency, start_month
     FROM fixed_expenses
     WHERE is_active = 1 AND user_id = ? AND category_id IS NULL
-  `).get(userId) as any;
-  const fixedNoCategory = fixedNoCatRow.total;
+  `).all(userId) as any[];
+  let fixedNoCategory = 0;
+  for (const fe of fixedNoCatRows) {
+    if (isExpenseDueInMonth(fe.frequency, fe.start_month, month)) {
+      fixedNoCategory += fe.amount;
+    }
+  }
 
   // ---- 4. ACTUAL EXPENSES THIS MONTH PER CATEGORY ----
   const actualByCategory = db.prepare(`
@@ -556,12 +563,16 @@ router.get('/forecast', (req: Request, res: Response) => {
   const expectedIncome = incomeRecords.reduce((sum: number, r: any) => sum + r.expected_amount, 0) + forecastVariableIncome;
   const actualIncome = incomeRecords.reduce((sum: number, r: any) => sum + (r.actual_amount || 0), 0) + forecastVariableIncome;
 
-  // Fixed expenses
-  const fixedExpenses = db.prepare(
+  // Fixed expenses (filter by frequency)
+  const allForecastFixed = db.prepare(
     'SELECT * FROM fixed_expenses WHERE is_active = 1 AND user_id = ? ORDER BY billing_day'
   ).all(userId) as any[];
 
-  const expectedExpenses = fixedExpenses.reduce((sum: number, e: any) => sum + e.amount, 0);
+  const fixedExpensesDue = allForecastFixed.filter((e: any) =>
+    isExpenseDueInMonth(e.frequency, e.start_month, month)
+  );
+
+  const expectedExpenses = fixedExpensesDue.reduce((sum: number, e: any) => sum + e.amount, 0);
 
   // Actual expenses from transactions
   const actualExpRow = db.prepare(`
@@ -574,9 +585,9 @@ router.get('/forecast', (req: Request, res: Response) => {
 
   const actualExpenses = actualExpRow.total;
 
-  // Upcoming fixed expenses (days until billing)
+  // Upcoming fixed expenses (days until billing) — only those due this month
   const monthDate = dayjs(month + '-01');
-  const upcomingFixedExpenses = fixedExpenses.map((e: any) => {
+  const upcomingFixedExpenses = fixedExpensesDue.map((e: any) => {
     const billingDate = monthDate.date(Math.min(e.billing_day, monthDate.daysInMonth()));
     const daysUntil = billingDate.diff(today, 'day');
     return {
