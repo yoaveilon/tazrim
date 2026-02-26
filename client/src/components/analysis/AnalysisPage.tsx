@@ -81,8 +81,9 @@ export default function AnalysisPage({ month }: Props) {
         const avgExpenses = otherMonths.length > 0
           ? Math.round(otherMonths.reduce((s: number, m: any) => s + m.expenses, 0) / otherMonths.length)
           : 0;
-        const avgIncome = otherMonths.length > 0
-          ? Math.round(otherMonths.reduce((s: number, m: any) => s + m.income, 0) / otherMonths.length)
+        const monthsWithReceivedIncome = otherMonths.filter((m: any) => m.receivedIncome > 0);
+        const avgIncome = monthsWithReceivedIncome.length > 0
+          ? Math.round(monthsWithReceivedIncome.reduce((s: number, m: any) => s + m.receivedIncome, 0) / monthsWithReceivedIncome.length)
           : 0;
         return {
           current: currentMonth || { expenses: 0, income: 0 },
@@ -132,7 +133,7 @@ export default function AnalysisPage({ month }: Props) {
             )}
           </div>
           <div className="card">
-            <p className="text-xs text-gray-500 mb-1">משכורת ממוצעת</p>
+            <p className="text-xs text-gray-500 mb-1">הכנסה ממוצעת</p>
             {monthlyComparison.avgIncome > 0 ? (
               <p className="text-xl font-bold text-success-500">{formatNIS(monthlyComparison.avgIncome)}</p>
             ) : (

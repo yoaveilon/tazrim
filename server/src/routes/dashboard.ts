@@ -637,6 +637,16 @@ router.get('/trends', (req: Request, res: Response) => {
     ORDER BY ir.month
   `).all(startMonth, userId) as any[];
 
+  // Get received income per month (only income_records where status = 'received')
+  const receivedIncome = db.prepare(`
+    SELECT ir.month, SUM(ir.actual_amount) as total
+    FROM income_records ir
+    JOIN income_sources is2 ON ir.income_source_id = is2.id
+    WHERE ir.month >= ? AND is2.user_id = ? AND ir.status = 'received'
+    GROUP BY ir.month
+    ORDER BY ir.month
+  `).all(startMonth, userId) as any[];
+
   // Variable income per month (credit card refunds)
   const variableIncomeByMonth = db.prepare(`
     SELECT strftime('%Y-%m', COALESCE(processed_date, date)) as month, SUM(ABS(charged_amount)) as total
@@ -649,6 +659,7 @@ router.get('/trends', (req: Request, res: Response) => {
 
   const expenseMap = new Map(expenses.map((e: any) => [e.month, e.total]));
   const incomeMap = new Map(income.map((i: any) => [i.month, i.total]));
+  const receivedIncomeMap = new Map(receivedIncome.map((i: any) => [i.month, i.total]));
   const variableIncomeMap = new Map(variableIncomeByMonth.map((v: any) => [v.month, v.total]));
 
   // Build month-by-month data
@@ -659,10 +670,12 @@ router.get('/trends', (req: Request, res: Response) => {
   while (current.isBefore(end) || current.format('YYYY-MM') === end.format('YYYY-MM')) {
     const m = current.format('YYYY-MM');
     const inc = (incomeMap.get(m) || 0) + (variableIncomeMap.get(m) || 0);
+    const recInc = receivedIncomeMap.get(m) || 0;
     const exp = expenseMap.get(m) || 0;
     months.push({
       month: m,
       income: inc,
+      receivedIncome: recInc,
       expenses: exp,
       balance: inc - exp,
     });
