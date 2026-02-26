@@ -123,6 +123,9 @@ export default function DashboardPage({ month }: Props) {
             <p className="text-2xl sm:text-3xl font-bold text-gray-900">
               {formatNIS(cashflow?.totalForecastExpenses || 0)}
             </p>
+            <p className="text-sm text-gray-500 mt-1">
+              יצא עד עכשיו: {formatNIS(cashflow?.totalActualExpenses || 0)}
+            </p>
           </div>
         </div>
 
