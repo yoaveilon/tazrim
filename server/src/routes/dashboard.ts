@@ -348,7 +348,8 @@ router.get('/cashflow', (req: Request, res: Response) => {
     for (let i = 0; i < weekRanges.length; i++) {
       const isPastWeek = weekRanges[i].endDay < todayDay;
       if (isPastWeek && weekActuals[i] > 0) {
-        const leftover = Math.max(0, baseBudgetPerWeek - weekActuals[i]);
+        // Allow negative leftover so overspending is deducted from carry-over
+        const leftover = baseBudgetPerWeek - weekActuals[i];
         carryOver += leftover;
         pastWeekLeftovers.push(leftover);
       } else {
@@ -410,6 +411,11 @@ router.get('/cashflow', (req: Request, res: Response) => {
         transactions: txnList,
       };
     });
+
+    // If total actual meets or exceeds forecast, no budget remaining (handles rounding edge cases)
+    if (actual >= forecast) {
+      for (const wb of weeklyBreakdown) wb.remaining = 0;
+    }
 
     categoryForecasts.push({
       category_id: cat.id,
