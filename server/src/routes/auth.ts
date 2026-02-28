@@ -77,6 +77,8 @@ router.post('/google', async (req: Request, res: Response, next: NextFunction) =
     // Create app JWT
     const token = createToken({ id: user.id, email: user.email, name: user.name });
 
+    const adminEmail = process.env.ADMIN_EMAIL;
+
     res.json({
       token,
       user: {
@@ -86,6 +88,7 @@ router.post('/google', async (req: Request, res: Response, next: NextFunction) =
         name: user.name,
         picture: user.picture,
         created_at: user.created_at,
+        is_admin: !!(adminEmail && user.email === adminEmail),
       },
     });
   } catch (err) {
@@ -118,6 +121,8 @@ router.get('/me', (req: Request, res: Response) => {
     return;
   }
 
+  const adminEmail = process.env.ADMIN_EMAIL;
+
   res.json({
     id: user.id,
     google_id: user.google_id,
@@ -125,6 +130,7 @@ router.get('/me', (req: Request, res: Response) => {
     name: user.name,
     picture: user.picture,
     created_at: user.created_at,
+    is_admin: !!(adminEmail && user.email === adminEmail),
   });
 });
 

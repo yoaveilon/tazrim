@@ -13,6 +13,7 @@ import incomeRouter from './routes/income.js';
 import fixedExpensesRouter from './routes/fixed-expenses.js';
 import dashboardRouter from './routes/dashboard.js';
 import settingsRouter from './routes/settings.js';
+import adminRouter from './routes/admin.js';
 import { getDb } from './db/connection.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -54,6 +55,7 @@ app.use('/api/income', incomeRouter);
 app.use('/api/fixed-expenses', fixedExpensesRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/settings', settingsRouter);
+app.use('/api/admin', adminRouter);
 
 // Serve client static files in production
 if (process.env.NODE_ENV === 'production') {

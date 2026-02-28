@@ -10,6 +10,7 @@ import CategoriesPage from './components/categories/CategoriesPage';
 import RulesPage from './components/classification/RulesPage';
 import AnalysisPage from './components/analysis/AnalysisPage';
 import SettingsPage from './components/settings/SettingsPage';
+import AdminPage from './components/admin/AdminPage';
 import LoginPage from './components/auth/LoginPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { getCurrentMonth } from './utils/date';
@@ -35,6 +36,7 @@ export default function App() {
                 <Route path="/categories" element={<CategoriesPage />} />
                 <Route path="/rules" element={<RulesPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/admin" element={<AdminPage />} />
               </Routes>
             </AppShell>
           </ProtectedRoute>

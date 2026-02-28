@@ -270,6 +270,24 @@ export async function setForecastOverride(categoryId: number, monthlyBudget: num
   return data;
 }
 
+// --- Admin ---
+export interface AdminUser {
+  id: number;
+  email: string;
+  name: string;
+  picture: string | null;
+  created_at: string;
+  transaction_count: number;
+  last_transaction_date: string | null;
+  last_upload_date: string | null;
+  upload_count: number;
+}
+
+export async function getAdminUsers(): Promise<{ users: AdminUser[]; total: number }> {
+  const { data } = await api.get('/admin/users');
+  return data;
+}
+
 // --- Settings ---
 export async function getSettings(): Promise<AppSettings> {
   const { data } = await api.get('/settings');

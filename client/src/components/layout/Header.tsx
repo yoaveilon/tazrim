@@ -7,7 +7,7 @@ import { useAuth } from '../auth/AuthContext';
 import clsx from 'clsx';
 import {
   LayoutDashboard, PieChart, Receipt, TrendingUp, CalendarDays,
-  Upload, FolderOpen, Tags, Settings, LogOut,
+  Upload, FolderOpen, Tags, Settings, LogOut, Users,
   ChevronRight, ChevronLeft, Menu, X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -27,7 +27,7 @@ export default function Header({ currentMonth, onMonthChange }: Props) {
   const { user, logout } = useAuth();
   const location = useLocation();
 
-  const isMenuRouteActive = MENU_NAV.some((item) => location.pathname === item.path);
+  const isMenuRouteActive = MENU_NAV.some((item) => location.pathname === item.path) || location.pathname === '/admin';
 
   return (
     <>
@@ -116,6 +116,27 @@ export default function Header({ currentMonth, onMonthChange }: Props) {
                     </MenuItem>
                   );
                 })}
+                {user?.is_admin && (
+                  <>
+                    <div className="border-t border-gray-100 my-1.5" />
+                    <MenuItem>
+                      <NavLink
+                        to="/admin"
+                        className={({ isActive }) =>
+                          clsx(
+                            'flex items-center gap-3 px-4 py-2.5 text-sm transition-colors',
+                            isActive
+                              ? 'bg-primary-50 text-accent-blue font-semibold'
+                              : 'text-gray-600 hover:bg-gray-50'
+                          )
+                        }
+                      >
+                        <Users className="w-4 h-4 shrink-0" strokeWidth={1.5} />
+                        <span>ניהול משתמשים</span>
+                      </NavLink>
+                    </MenuItem>
+                  </>
+                )}
                 <div className="border-t border-gray-100 my-1.5" />
                 <MenuItem>
                   <button
@@ -236,6 +257,25 @@ export default function Header({ currentMonth, onMonthChange }: Props) {
                   </NavLink>
                 );
               })}
+
+              {/* Admin */}
+              {user?.is_admin && (
+                <NavLink
+                  to="/admin"
+                  onClick={() => setMobileOpen(false)}
+                  className={({ isActive }) =>
+                    clsx(
+                      'flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm transition-all duration-200',
+                      isActive
+                        ? 'bg-primary-50 text-accent-blue font-semibold'
+                        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                    )
+                  }
+                >
+                  <Users className="w-5 h-5 shrink-0" strokeWidth={1.5} />
+                  <span>ניהול משתמשים</span>
+                </NavLink>
+              )}
 
               {/* Logout */}
               <button

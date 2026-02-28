@@ -10,6 +10,7 @@ export interface User {
   name: string;
   picture: string | null;
   created_at: string;
+  is_admin?: boolean;
 }
 
 export interface AuthResponse {
