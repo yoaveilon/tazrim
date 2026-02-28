@@ -437,9 +437,9 @@ router.get('/cashflow', (req: Request, res: Response) => {
   categoryForecasts.sort((a: any, b: any) => a.difference - b.difference);
 
   // ---- 6. REMAINING TO SPEND ----
-  // remaining = expected income - total forecasted expenses
-  // This shows how much free money is left after all forecasted/budgeted categories
-  const remainingToSpend = expectedIncome - totalForecast;
+  // remaining = income - max(actual, forecast)
+  // Uses the higher of actual expenses vs forecast, so overspending is reflected immediately
+  const remainingToSpend = expectedIncome - Math.max(totalActual, totalForecast);
 
   res.json({
     expectedIncome,
