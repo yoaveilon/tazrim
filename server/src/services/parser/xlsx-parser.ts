@@ -6,18 +6,25 @@ export function parseXlsxBuffer(buffer: Buffer): string[][] {
     codepage: 1255, // Hebrew Windows codepage
   });
 
-  const firstSheetName = workbook.SheetNames[0];
-  if (!firstSheetName) {
+  if (!workbook.SheetNames.length) {
     throw new Error('הקובץ לא מכיל גליונות');
   }
 
-  const sheet = workbook.Sheets[firstSheetName];
-  const rows = XLSX.utils.sheet_to_json<string[]>(sheet, {
-    header: 1,
-    raw: false, // Get strings for dates
-    defval: '',
-  });
+  const allRows: string[][] = [];
 
-  // Filter out completely empty rows
-  return rows.filter(row => row.some(cell => cell !== '' && cell != null));
+  // Read ALL sheets and combine rows (e.g. Max has local + international sheets)
+  for (const sheetName of workbook.SheetNames) {
+    const sheet = workbook.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json<string[]>(sheet, {
+      header: 1,
+      raw: false, // Get strings for dates
+      defval: '',
+    });
+
+    // Filter out completely empty rows
+    const nonEmpty = rows.filter(row => row.some(cell => cell !== '' && cell != null));
+    allRows.push(...nonEmpty);
+  }
+
+  return allRows;
 }

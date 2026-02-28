@@ -354,7 +354,12 @@ function mapStandardRow(row: string[], mapping: ColumnMapping): ParsedTransactio
   const chargedAmount = chargedAmountRaw ? parseAmount(chargedAmountRaw) : parseAmount(originalAmountRaw);
   const originalAmount = originalAmountRaw ? parseAmount(originalAmountRaw) : chargedAmount;
 
-  const currency = get('currency') || 'ILS';
+  const currencyRaw = get('currency') || 'ILS';
+  // Normalize currency symbols to ISO codes
+  const currency = currencyRaw.includes('$') ? 'USD' :
+    currencyRaw.includes('€') ? 'EUR' :
+    currencyRaw.includes('£') ? 'GBP' :
+    currencyRaw.replace(/['"₪\s]/g, '') || 'ILS';
 
   // Check installments in dedicated column or notes
   const installmentInfo = parseInstallments(get('installments') || get('notes'));
@@ -367,7 +372,7 @@ function mapStandardRow(row: string[], mapping: ColumnMapping): ParsedTransactio
     processed_date: processedDate,
     description,
     original_amount: originalAmount,
-    original_currency: currency.replace(/['"₪\s]/g, '') || 'ILS',
+    original_currency: currency,
     charged_amount: chargedAmount,
     type,
     installment_number: installmentInfo.number,

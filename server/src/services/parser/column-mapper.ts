@@ -9,13 +9,13 @@ const COLUMN_ALIASES: Record<string, string[]> = {
   date: ['תאריך עסקה', 'תאריך', 'תאריך העסקה', 'תאריך רכישה'],
   processedDate: ['תאריך חיוב', 'תאריך עיבוד', 'מועד חיוב'],
   description: ['שם בית עסק', 'שם בית העסק', 'בית עסק', 'תיאור', 'פרטי העסקה', 'שם בית-העסק'],
-  originalAmount: ['סכום עסקה', 'סכום העסקה', 'סכום מקורי'],
+  originalAmount: ['סכום עסקה', 'סכום העסקה', 'סכום מקורי', 'סכום עסקה מקורי'],
   chargedAmount: ['סכום חיוב', 'סכום לחיוב', 'סכום בש"ח', 'סכום'],
-  currency: ['מטבע', 'מטבע מקור', 'מט"ח', 'מטבע עסקה'],
+  currency: ['מטבע', 'מטבע מקור', 'מט"ח', 'מטבע עסקה', 'מטבע עסקה מקורי'],
   chargedCurrency: ['מטבע חיוב'],
   type: ['סוג עסקה', 'סוג'],
   installments: ['תשלומים', 'מספר תשלום', 'תשלום'],
-  cardLastFour: ['4 ספרות אחרונות', 'ארבע ספרות', 'כרטיס', 'מספר כרטיס'],
+  cardLastFour: ['4 ספרות אחרונות', '4 ספרות אחרונות של כרטיס האשראי', 'ארבע ספרות', 'כרטיס', 'מספר כרטיס'],
   voucherNumber: ["מס' שובר"],
   notes: ['הערות', 'פירוט נוסף'],
 };
@@ -29,7 +29,8 @@ const COMPANY_SCHEMAS: Record<string, { knownHeaders: string[] }> = {
     knownHeaders: ['תאריך עסקה', 'שם בית עסק', 'סכום עסקה', 'סכום חיוב', 'מטבע', 'סוג עסקה'],
   },
   max: {
-    knownHeaders: ['תאריך העסקה', 'שם בית העסק', 'סכום העסקה', 'סכום חיוב', 'תשלומים'],
+    knownHeaders: ['תאריך העסקה', 'שם בית העסק', 'סכום העסקה', 'סכום חיוב', 'תשלומים',
+      'תאריך עסקה', 'סכום עסקה מקורי', 'מטבע עסקה מקורי', '4 ספרות אחרונות של כרטיס האשראי'],
   },
   visa_leumi: {
     knownHeaders: ['תאריך', 'פרטי העסקה', 'סכום', 'סכום חיוב'],
@@ -43,13 +44,17 @@ export interface ColumnMapping {
 export function detectCompany(headers: string[]): CreditCardCompany {
   const headerSet = new Set(headers.map(h => h.trim()));
 
+  let bestCompany: CreditCardCompany = 'unknown';
+  let bestScore = 0;
+
   for (const [company, schema] of Object.entries(COMPANY_SCHEMAS)) {
     const matchCount = schema.knownHeaders.filter(h => headerSet.has(h)).length;
-    if (matchCount >= 3) {
-      return company as CreditCardCompany;
+    if (matchCount >= 3 && matchCount > bestScore) {
+      bestScore = matchCount;
+      bestCompany = company as CreditCardCompany;
     }
   }
-  return 'unknown';
+  return bestCompany;
 }
 
 export function buildColumnMapping(headers: string[]): ColumnMapping {
@@ -73,10 +78,11 @@ export function parseHebrewDate(raw: string): string {
   const trimmed = raw.trim();
 
   // Support all common Israeli date formats:
-  // DD/MM/YYYY, DD/MM/YY, DD.MM.YY, DD.MM.YYYY
+  // DD/MM/YYYY, DD/MM/YY, DD.MM.YY, DD.MM.YYYY, DD-MM-YYYY, DD-MM-YY
   const parsed = dayjs(trimmed, [
     'DD/MM/YYYY', 'DD/MM/YY', 'D/M/YYYY', 'D/M/YY',
     'DD.MM.YYYY', 'DD.MM.YY', 'D.M.YYYY', 'D.M.YY',
+    'DD-MM-YYYY', 'DD-MM-YY', 'D-M-YYYY', 'D-M-YY',
   ], true);
 
   if (!parsed.isValid()) {
