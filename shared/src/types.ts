@@ -92,6 +92,9 @@ export interface ParsedTransaction {
 
 export interface UpdateTransactionInput {
   category_id?: number | null;
+  description?: string;
+  charged_amount?: number;
+  date?: string;
   notes?: string;
 }
 

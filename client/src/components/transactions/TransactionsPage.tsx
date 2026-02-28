@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
@@ -8,7 +8,7 @@ import {
 import { formatNIS } from '../../utils/currency';
 import { formatDateHebrew } from '../../utils/date';
 import type { Transaction, Category } from 'shared/src/types';
-import { Pin, Receipt, RefreshCw, Trash2 } from 'lucide-react';
+import { Pin, Receipt, RefreshCw, Trash2, Pencil } from 'lucide-react';
 import CategoryIcon from '../ui/CategoryIcon';
 
 interface Props {
@@ -22,6 +22,14 @@ interface FixedExpenseModal {
   categoryId: number | null;
 }
 
+interface EditModal {
+  id: number;
+  description: string;
+  charged_amount: number;
+  date: string;
+  category_id: number | null;
+}
+
 interface SimilarSuggestion {
   transactions: Transaction[];
   categoryId: number;
@@ -30,11 +38,89 @@ interface SimilarSuggestion {
   description: string;
 }
 
+// Swipeable card for mobile - reveals action buttons on swipe right (RTL: swipe left visually)
+function SwipeableCard({ children, onEdit, onDelete }: {
+  children: React.ReactNode;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const startX = useRef(0);
+  const currentX = useRef(0);
+  const [offset, setOffset] = useState(0);
+  const [swiped, setSwiped] = useState(false);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX;
+    currentX.current = e.touches[0].clientX;
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    currentX.current = e.touches[0].clientX;
+    // RTL: swiping left (negative diff) reveals actions on the right
+    const diff = startX.current - currentX.current;
+    if (diff > 0) {
+      setOffset(Math.min(diff, 120));
+    } else if (swiped) {
+      setOffset(Math.max(120 + diff, 0));
+    }
+  }, [swiped]);
+
+  const handleTouchEnd = useCallback(() => {
+    const diff = startX.current - currentX.current;
+    if (diff > 60 && !swiped) {
+      setOffset(120);
+      setSwiped(true);
+    } else if (diff < -30 && swiped) {
+      setOffset(0);
+      setSwiped(false);
+    } else {
+      setOffset(swiped ? 120 : 0);
+    }
+  }, [swiped]);
+
+  const closeSwipe = useCallback(() => {
+    setOffset(0);
+    setSwiped(false);
+  }, []);
+
+  return (
+    <div ref={containerRef} className="relative overflow-hidden rounded-xl">
+      {/* Action buttons behind the card */}
+      <div className="absolute inset-y-0 left-0 flex items-stretch" style={{ width: 120 }}>
+        <button
+          onClick={() => { closeSwipe(); onEdit(); }}
+          className="flex-1 flex items-center justify-center bg-primary-500 text-white"
+        >
+          <Pencil className="w-5 h-5" strokeWidth={1.5} />
+        </button>
+        <button
+          onClick={() => { closeSwipe(); onDelete(); }}
+          className="flex-1 flex items-center justify-center bg-danger-400 text-white"
+        >
+          <Trash2 className="w-5 h-5" strokeWidth={1.5} />
+        </button>
+      </div>
+      {/* Card content slides over */}
+      <div
+        className="relative bg-white transition-transform duration-200 ease-out"
+        style={{ transform: `translateX(-${offset}px)` }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export default function TransactionsPage({ month }: Props) {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
   const [fixedModal, setFixedModal] = useState<FixedExpenseModal | null>(null);
+  const [editModal, setEditModal] = useState<EditModal | null>(null);
   const [similarSuggestion, setSimilarSuggestion] = useState<SimilarSuggestion | null>(null);
   const [selectedSimilarIds, setSelectedSimilarIds] = useState<Set<number>>(new Set());
   const queryClient = useQueryClient();
@@ -55,38 +141,41 @@ export default function TransactionsPage({ month }: Props) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, category_id }: { id: number; category_id: number }) =>
-      updateTransaction(id, { category_id }),
+    mutationFn: ({ id, ...input }: { id: number; category_id?: number; description?: string; charged_amount?: number; date?: string }) =>
+      updateTransaction(id, input),
     onSuccess: async (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      setEditingId(null);
-      toast.success('הקטגוריה עודכנה');
+      queryClient.invalidateQueries({ queryKey: ['cashflow'] });
+      setEditingCategoryId(null);
 
-      // Find the transaction that was just classified
-      const txn = txnData?.data?.find((t: Transaction) => t.id === variables.id);
-      if (!txn) return;
-
-      // Look for similar transactions across all months
-      try {
-        const similar = await getSimilarTransactions(
-          txn.description,
-          variables.category_id,
-          variables.id,
-        );
-        if (similar.length > 0) {
-          const cat = categories?.find((c: Category) => c.id === variables.category_id);
-          setSimilarSuggestion({
-            transactions: similar,
-            categoryId: variables.category_id,
-            categoryName: cat?.name || 'לא ידוע',
-            categoryIcon: cat?.icon,
-            description: txn.description,
-          });
-          // Select all by default
-          setSelectedSimilarIds(new Set(similar.map((t: Transaction) => t.id)));
+      // If only category changed, look for similar transactions
+      if (variables.category_id && !variables.description && !variables.charged_amount && !variables.date) {
+        toast.success('הקטגוריה עודכנה');
+        const txn = txnData?.data?.find((t: Transaction) => t.id === variables.id);
+        if (!txn) return;
+        try {
+          const similar = await getSimilarTransactions(
+            txn.description,
+            variables.category_id,
+            variables.id,
+          );
+          if (similar.length > 0) {
+            const cat = categories?.find((c: Category) => c.id === variables.category_id);
+            setSimilarSuggestion({
+              transactions: similar,
+              categoryId: variables.category_id,
+              categoryName: cat?.name || 'לא ידוע',
+              categoryIcon: cat?.icon,
+              description: txn.description,
+            });
+            setSelectedSimilarIds(new Set(similar.map((t: Transaction) => t.id)));
+          }
+        } catch {
+          // Silently fail
         }
-      } catch {
-        // Silently fail - this is a suggestion, not critical
+      } else {
+        toast.success('העסקה עודכנה');
+        setEditModal(null);
       }
     },
   });
@@ -141,6 +230,27 @@ export default function TransactionsPage({ month }: Props) {
     });
   }
 
+  function openEditModal(txn: Transaction) {
+    setEditModal({
+      id: txn.id,
+      description: txn.description,
+      charged_amount: txn.charged_amount,
+      date: txn.date,
+      category_id: txn.category_id,
+    });
+  }
+
+  function submitEdit() {
+    if (!editModal) return;
+    updateMutation.mutate({
+      id: editModal.id,
+      description: editModal.description,
+      charged_amount: editModal.charged_amount,
+      date: editModal.date,
+      ...(editModal.category_id ? { category_id: editModal.category_id } : {}),
+    });
+  }
+
   function submitFixed() {
     if (!fixedModal) return;
     fixedMutation.mutate({
@@ -149,6 +259,12 @@ export default function TransactionsPage({ month }: Props) {
       billing_day: fixedModal.billingDay,
       ...(fixedModal.categoryId ? { category_id: fixedModal.categoryId } : {}),
     });
+  }
+
+  function handleDelete(txn: Transaction) {
+    if (confirm(`למחוק את "${txn.description}"?`)) {
+      deleteTxnMutation.mutate(txn.id);
+    }
   }
 
   function toggleSimilarId(id: number) {
@@ -224,7 +340,7 @@ export default function TransactionsPage({ month }: Props) {
                 <th className="text-right py-3 pe-4">קטגוריה</th>
                 <th className="text-left py-3 pe-4">סכום</th>
                 <th className="text-right py-3 pe-4">סוג</th>
-                <th className="w-10 py-3"></th>
+                <th className="w-20 py-3"></th>
               </tr>
             </thead>
             <tbody>
@@ -235,7 +351,7 @@ export default function TransactionsPage({ month }: Props) {
                   </td>
                   <td className="py-3 pe-4">{txn.description}</td>
                   <td className="py-3 pe-4">
-                    {editingId === txn.id ? (
+                    {editingCategoryId === txn.id ? (
                       <select
                         autoFocus
                         className="input py-1 text-sm"
@@ -246,7 +362,7 @@ export default function TransactionsPage({ month }: Props) {
                             category_id: parseInt(e.target.value),
                           });
                         }}
-                        onBlur={() => setEditingId(null)}
+                        onBlur={() => setEditingCategoryId(null)}
                       >
                         <option value="">ללא קטגוריה</option>
                         {expenseCategories.map((c: Category) => (
@@ -255,7 +371,7 @@ export default function TransactionsPage({ month }: Props) {
                       </select>
                     ) : (
                       <button
-                        onClick={() => setEditingId(txn.id)}
+                        onClick={() => setEditingCategoryId(txn.id)}
                         className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium hover:opacity-80 transition-opacity"
                         style={{
                           backgroundColor: txn.category_color ? `${txn.category_color}20` : '#f3f4f6',
@@ -278,6 +394,13 @@ export default function TransactionsPage({ month }: Props) {
                   <td className="py-3">
                     <div className="flex items-center gap-1">
                       <button
+                        onClick={() => openEditModal(txn)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-primary-500"
+                        title="ערוך עסקה"
+                      >
+                        <Pencil className="w-4 h-4" strokeWidth={1.5} />
+                      </button>
+                      <button
                         onClick={() => openFixedModal(txn)}
                         className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-primary-500"
                         title="סמן כהוצאה קבועה"
@@ -285,11 +408,7 @@ export default function TransactionsPage({ month }: Props) {
                         <Pin className="w-4 h-4" strokeWidth={1.5} />
                       </button>
                       <button
-                        onClick={() => {
-                          if (confirm(`למחוק את "${txn.description}"?`)) {
-                            deleteTxnMutation.mutate(txn.id);
-                          }
-                        }}
+                        onClick={() => handleDelete(txn)}
                         className="opacity-0 group-hover:opacity-100 transition-opacity text-danger-300 hover:text-danger-500"
                         title="מחק עסקה"
                       >
@@ -321,47 +440,51 @@ export default function TransactionsPage({ month }: Props) {
         ) : (
           <>
             {txnData.data.map((txn: Transaction) => (
-              <div key={txn.id} className="card !p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{txn.description}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{formatDateHebrew(txn.date)}</p>
+              <SwipeableCard
+                key={txn.id}
+                onEdit={() => openEditModal(txn)}
+                onDelete={() => handleDelete(txn)}
+              >
+                <div className="card !rounded-none !shadow-none !p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{txn.description}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{formatDateHebrew(txn.date)}</p>
+                    </div>
+                    <p className="font-mono font-bold text-sm mr-3">{formatNIS(txn.charged_amount)}</p>
                   </div>
-                  <p className="font-mono font-bold text-sm mr-3">{formatNIS(txn.charged_amount)}</p>
-                </div>
-                <div className="flex items-center justify-between">
-                  {editingId === txn.id ? (
-                    <select
-                      autoFocus
-                      className="input py-1 text-sm flex-1"
-                      defaultValue={txn.category_id || ''}
-                      onChange={(e) => {
-                        updateMutation.mutate({
-                          id: txn.id,
-                          category_id: parseInt(e.target.value),
-                        });
-                      }}
-                      onBlur={() => setEditingId(null)}
-                    >
-                      <option value="">ללא קטגוריה</option>
-                      {expenseCategories.map((c: Category) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <button
-                      onClick={() => setEditingId(txn.id)}
-                      className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium hover:opacity-80 transition-opacity"
-                      style={{
-                        backgroundColor: txn.category_color ? `${txn.category_color}20` : '#f3f4f6',
-                        color: txn.category_color || '#6b7280',
-                      }}
-                    >
-                      {txn.category_icon && <CategoryIcon icon={txn.category_icon} className="w-3.5 h-3.5" strokeWidth={1.5} />}
-                      {txn.category_name || 'לא מסווג'}
-                    </button>
-                  )}
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center justify-between">
+                    {editingCategoryId === txn.id ? (
+                      <select
+                        autoFocus
+                        className="input py-1 text-sm flex-1"
+                        defaultValue={txn.category_id || ''}
+                        onChange={(e) => {
+                          updateMutation.mutate({
+                            id: txn.id,
+                            category_id: parseInt(e.target.value),
+                          });
+                        }}
+                        onBlur={() => setEditingCategoryId(null)}
+                      >
+                        <option value="">ללא קטגוריה</option>
+                        {expenseCategories.map((c: Category) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <button
+                        onClick={() => setEditingCategoryId(txn.id)}
+                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium hover:opacity-80 transition-opacity"
+                        style={{
+                          backgroundColor: txn.category_color ? `${txn.category_color}20` : '#f3f4f6',
+                          color: txn.category_color || '#6b7280',
+                        }}
+                      >
+                        {txn.category_icon && <CategoryIcon icon={txn.category_icon} className="w-3.5 h-3.5" strokeWidth={1.5} />}
+                        {txn.category_name || 'לא מסווג'}
+                      </button>
+                    )}
                     <button
                       onClick={() => openFixedModal(txn)}
                       className="text-gray-400 hover:text-primary-500 p-1"
@@ -369,20 +492,9 @@ export default function TransactionsPage({ month }: Props) {
                     >
                       <Pin className="w-4 h-4" strokeWidth={1.5} />
                     </button>
-                    <button
-                      onClick={() => {
-                        if (confirm(`למחוק את "${txn.description}"?`)) {
-                          deleteTxnMutation.mutate(txn.id);
-                        }
-                      }}
-                      className="text-danger-300 hover:text-danger-500 p-1"
-                      title="מחק עסקה"
-                    >
-                      <Trash2 className="w-4 h-4" strokeWidth={1.5} />
-                    </button>
                   </div>
                 </div>
-              </div>
+              </SwipeableCard>
             ))}
             {txnData.total > 0 && (
               <p className="text-sm text-gray-500 text-center">
@@ -392,6 +504,72 @@ export default function TransactionsPage({ month }: Props) {
           </>
         )}
       </div>
+
+      {/* Edit Transaction Modal */}
+      {editModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2"><Pencil className="w-5 h-5" strokeWidth={1.5} /> עריכת עסקה</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">תיאור</label>
+                <input
+                  type="text"
+                  className="input w-full"
+                  value={editModal.description}
+                  onChange={(e) => setEditModal({ ...editModal, description: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">סכום</label>
+                <input
+                  type="number"
+                  className="input w-full"
+                  value={editModal.charged_amount}
+                  onChange={(e) => setEditModal({ ...editModal, charged_amount: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">תאריך</label>
+                <input
+                  type="date"
+                  className="input w-full"
+                  value={editModal.date}
+                  onChange={(e) => setEditModal({ ...editModal, date: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">קטגוריה</label>
+                <select
+                  className="input w-full"
+                  value={editModal.category_id || ''}
+                  onChange={(e) => setEditModal({ ...editModal, category_id: e.target.value ? parseInt(e.target.value) : null })}
+                >
+                  <option value="">ללא קטגוריה</option>
+                  {expenseCategories.map((c: Category) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={submitEdit}
+                disabled={updateMutation.isPending || !editModal.description || editModal.charged_amount <= 0}
+                className="btn btn-primary flex-1"
+              >
+                {updateMutation.isPending ? 'שומר...' : 'שמור שינויים'}
+              </button>
+              <button
+                onClick={() => setEditModal(null)}
+                className="btn bg-gray-100 text-gray-700 hover:bg-gray-200 flex-1"
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Similar Transactions Suggestion Modal */}
       {similarSuggestion && (

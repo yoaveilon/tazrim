@@ -206,7 +206,7 @@ router.get('/:id', (req: Request, res: Response) => {
 router.patch('/:id', (req: Request, res: Response) => {
   const db = getDb();
   const userId = req.user!.id;
-  const { category_id, notes } = req.body;
+  const { category_id, description, charged_amount, date, notes } = req.body;
 
   const updates: string[] = [];
   const params: any[] = [];
@@ -215,6 +215,20 @@ router.patch('/:id', (req: Request, res: Response) => {
     updates.push('category_id = ?');
     params.push(category_id);
     updates.push("classification_method = 'manual'");
+  }
+  if (description !== undefined) {
+    updates.push('description = ?');
+    params.push(description);
+  }
+  if (charged_amount !== undefined) {
+    updates.push('charged_amount = ?');
+    params.push(charged_amount);
+    updates.push('original_amount = ?');
+    params.push(charged_amount);
+  }
+  if (date !== undefined) {
+    updates.push('date = ?');
+    params.push(date);
   }
   if (notes !== undefined) {
     updates.push('notes = ?');
