@@ -508,7 +508,7 @@ export default function TransactionsPage({ month }: Props) {
       {/* Edit Transaction Modal */}
       {editModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4 overflow-hidden">
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2"><Pencil className="w-5 h-5" strokeWidth={1.5} /> עריכת עסקה</h3>
             <div className="space-y-4">
               <div>
@@ -529,11 +529,12 @@ export default function TransactionsPage({ month }: Props) {
                   onChange={(e) => setEditModal({ ...editModal, charged_amount: parseFloat(e.target.value) || 0 })}
                 />
               </div>
-              <div>
+              <div className="overflow-hidden">
                 <label className="block text-sm font-medium text-gray-700 mb-1">תאריך</label>
                 <input
                   type="date"
-                  className="input w-full"
+                  className="input w-full max-w-full box-border [&::-webkit-date-and-time-value]:text-right"
+                  style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
                   value={editModal.date}
                   onChange={(e) => setEditModal({ ...editModal, date: e.target.value })}
                 />
