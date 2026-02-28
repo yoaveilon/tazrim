@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
-  getTransactions, updateTransaction, getCategories,
+  getTransactions, updateTransaction, deleteTransaction, getCategories,
   createFixedExpense, getSimilarTransactions, batchClassifyTransactions,
 } from '../../services/api';
 import { formatNIS } from '../../utils/currency';
 import { formatDateHebrew } from '../../utils/date';
 import type { Transaction, Category } from 'shared/src/types';
-import { Pin, Receipt, RefreshCw } from 'lucide-react';
+import { Pin, Receipt, RefreshCw, Trash2 } from 'lucide-react';
 import CategoryIcon from '../ui/CategoryIcon';
 
 interface Props {
@@ -117,6 +117,15 @@ export default function TransactionsPage({ month }: Props) {
     },
     onError: () => {
       toast.error('שגיאה ביצירת הוצאה קבועה');
+    },
+  });
+
+  const deleteTxnMutation = useMutation({
+    mutationFn: deleteTransaction,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['cashflow'] });
+      toast.success('העסקה נמחקה');
     },
   });
 
@@ -267,13 +276,26 @@ export default function TransactionsPage({ month }: Props) {
                       : ''}
                   </td>
                   <td className="py-3">
-                    <button
-                      onClick={() => openFixedModal(txn)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-primary-500"
-                      title="סמן כהוצאה קבועה"
-                    >
-                      <Pin className="w-4 h-4" strokeWidth={1.5} />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => openFixedModal(txn)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-primary-500"
+                        title="סמן כהוצאה קבועה"
+                      >
+                        <Pin className="w-4 h-4" strokeWidth={1.5} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`למחוק את "${txn.description}"?`)) {
+                            deleteTxnMutation.mutate(txn.id);
+                          }
+                        }}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-danger-300 hover:text-danger-500"
+                        title="מחק עסקה"
+                      >
+                        <Trash2 className="w-4 h-4" strokeWidth={1.5} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -339,13 +361,26 @@ export default function TransactionsPage({ month }: Props) {
                       {txn.category_name || 'לא מסווג'}
                     </button>
                   )}
-                  <button
-                    onClick={() => openFixedModal(txn)}
-                    className="text-gray-400 hover:text-primary-500 p-1"
-                    title="סמן כהוצאה קבועה"
-                  >
-                    <Pin className="w-4 h-4" strokeWidth={1.5} />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => openFixedModal(txn)}
+                      className="text-gray-400 hover:text-primary-500 p-1"
+                      title="סמן כהוצאה קבועה"
+                    >
+                      <Pin className="w-4 h-4" strokeWidth={1.5} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm(`למחוק את "${txn.description}"?`)) {
+                          deleteTxnMutation.mutate(txn.id);
+                        }
+                      }}
+                      className="text-danger-300 hover:text-danger-500 p-1"
+                      title="מחק עסקה"
+                    >
+                      <Trash2 className="w-4 h-4" strokeWidth={1.5} />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
