@@ -86,8 +86,8 @@ function SwipeableCard({ children, onEdit, onDelete }: {
 
   return (
     <div ref={containerRef} className="relative overflow-hidden rounded-xl">
-      {/* Action buttons behind the card */}
-      <div className="absolute inset-y-0 left-0 flex items-stretch" style={{ width: 120 }}>
+      {/* Action buttons behind the card (right side, revealed when card slides left) */}
+      <div className="absolute inset-y-0 right-0 flex items-stretch" style={{ width: 120 }}>
         <button
           onClick={() => { closeSwipe(); onEdit(); }}
           className="flex-1 flex items-center justify-center bg-primary-500 text-white"

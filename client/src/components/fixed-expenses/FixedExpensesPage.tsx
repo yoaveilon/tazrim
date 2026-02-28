@@ -261,17 +261,17 @@ export default function FixedExpensesPage({ month }: Props) {
       )}
 
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-4 mb-4">
-        <div className="card">
-          <p className="text-xs text-gray-500 mb-1">סה"כ {formatMonthHebrew(month)}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
+        <div className="card flex sm:block items-center justify-between">
+          <p className="text-xs text-gray-500 sm:mb-1">סה"כ {formatMonthHebrew(month)}</p>
           <p className="text-xl font-bold text-danger-400">{formatNIS(totalMonthly)}</p>
         </div>
-        <div className="card">
-          <p className="text-xs text-gray-500 mb-1">שולם ב{formatMonthHebrew(month)}</p>
+        <div className="card flex sm:block items-center justify-between">
+          <p className="text-xs text-gray-500 sm:mb-1">שולם ב{formatMonthHebrew(month)}</p>
           <p className="text-xl font-bold text-success-500">{formatNIS(paidTotal)}</p>
         </div>
-        <div className="card">
-          <p className="text-xs text-gray-500 mb-1">טרם שולם</p>
+        <div className="card flex sm:block items-center justify-between">
+          <p className="text-xs text-gray-500 sm:mb-1">טרם שולם</p>
           <p className="text-xl font-bold text-warning-500">{formatNIS(unpaidTotal)}</p>
         </div>
       </div>
