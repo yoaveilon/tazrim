@@ -177,11 +177,27 @@ export interface ParseResult {
   errors: string[];
 }
 
+export interface SoftDuplicateTransaction {
+  id: number;
+  description: string;
+  date: string;
+  charged_amount: number;
+  original_amount: number;
+  original_currency: string;
+  card_last_four: string | null;
+}
+
+export interface SoftDuplicate {
+  newTransaction: SoftDuplicateTransaction;
+  existingTransaction: SoftDuplicateTransaction;
+}
+
 export interface ImportResult {
   imported: number;
   skipped: number;
   failed: number;
   autoClassified: number;
+  softDuplicates: SoftDuplicate[];
 }
 
 export interface UploadRecord {

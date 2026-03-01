@@ -5,7 +5,7 @@ import type {
   DashboardSummary, DashboardForecast, MonthlyTrendPoint, CashFlowData, WeeklyBreakdown,
   PaginatedResponse, CreateCategoryInput, CreateRuleInput,
   CreateIncomeInput, CreateFixedExpenseInput, UpdateTransactionInput, CreateTransactionInput,
-  AppSettings, VariableIncomeData,
+  AppSettings, VariableIncomeData, SoftDuplicate,
 } from 'shared/src/types';
 
 const api = axios.create({
@@ -101,6 +101,11 @@ export async function importTransactions(params: {
   filename: string;
 }): Promise<ImportResult> {
   const { data } = await api.post('/upload/import', params);
+  return data;
+}
+
+export async function resolveDuplicate(keepId: number, removeId: number): Promise<{ success: boolean }> {
+  const { data } = await api.post('/upload/resolve-duplicate', { keepId, removeId });
   return data;
 }
 

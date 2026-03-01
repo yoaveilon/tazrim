@@ -2,17 +2,19 @@ import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { parseFile, importTransactions } from '../../services/api';
-import type { ParseResult, ImportResult } from 'shared/src/types';
+import type { ParseResult, ImportResult, SoftDuplicate } from 'shared/src/types';
 import FileDropZone from './FileDropZone';
 import FilePreview from './FilePreview';
 import ImportSummary from './ImportSummary';
+import DuplicateResolver from './DuplicateResolver';
 
-type Step = 'upload' | 'preview' | 'done';
+type Step = 'upload' | 'preview' | 'resolve' | 'done';
 
 export default function UploadPage() {
   const [step, setStep] = useState<Step>('upload');
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [softDuplicates, setSoftDuplicates] = useState<SoftDuplicate[]>([]);
 
   const parseMutation = useMutation({
     mutationFn: parseFile,
@@ -32,11 +34,17 @@ export default function UploadPage() {
     mutationFn: importTransactions,
     onSuccess: (result) => {
       setImportResult(result);
-      setStep('done');
       const msg = result.autoClassified > 0
         ? `יובאו ${result.imported} עסקאות (${result.autoClassified} סווגו אוטומטית)`
         : `יובאו ${result.imported} עסקאות בהצלחה`;
       toast.success(msg);
+
+      if (result.softDuplicates && result.softDuplicates.length > 0) {
+        setSoftDuplicates(result.softDuplicates);
+        setStep('resolve');
+      } else {
+        setStep('done');
+      }
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.error || 'שגיאה בייבוא');
@@ -60,6 +68,7 @@ export default function UploadPage() {
     setStep('upload');
     setParseResult(null);
     setImportResult(null);
+    setSoftDuplicates([]);
   };
 
   return (
@@ -80,6 +89,18 @@ export default function UploadPage() {
           onCancel={handleReset}
           isImporting={importMutation.isPending}
         />
+      )}
+
+      {step === 'resolve' && softDuplicates.length > 0 && (
+        <>
+          {importResult && <ImportSummary result={importResult} onReset={handleReset} />}
+          <div className="mt-6">
+            <DuplicateResolver
+              duplicates={softDuplicates}
+              onDone={() => setStep('done')}
+            />
+          </div>
+        </>
       )}
 
       {step === 'done' && importResult && (

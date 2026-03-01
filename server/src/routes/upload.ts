@@ -3,6 +3,7 @@ import multer from 'multer';
 import { getDb } from '../db/connection.js';
 import { parseFile } from '../services/parser/index.js';
 import { classifyTransactions } from '../services/classifier/index.js';
+import type { SoftDuplicate } from 'shared/src/types.js';
 
 const router = Router();
 const upload = multer({
@@ -96,6 +97,7 @@ router.post('/import', (req: Request, res: Response, next: NextFunction) => {
     let skipped = 0;
     let failed = 0;
     let autoClassified = 0;
+    const newlyImportedForeignIds: { id: number; txn: typeof classified[0] }[] = [];
 
     const importAll = db.transaction(() => {
       for (const txn of classified) {
@@ -123,6 +125,10 @@ router.post('/import', (req: Request, res: Response, next: NextFunction) => {
             if (txn.category_id && (txn.classification_method === 'history' || txn.classification_method === 'keyword')) {
               autoClassified++;
             }
+            // Track newly imported foreign currency transactions for soft dedup
+            if (txn.original_currency && txn.original_currency !== 'ILS') {
+              newlyImportedForeignIds.push({ id: Number(result.lastInsertRowid), txn });
+            }
           } else {
             skipped++; // Duplicate — update description & processed_date from newer file
             updateExistingStmt.run(
@@ -144,13 +150,90 @@ router.post('/import', (req: Request, res: Response, next: NextFunction) => {
 
     importAll();
 
+    // Detect soft duplicates: foreign currency transactions with same date+description+card but different charged_amount
+    const softDuplicates: SoftDuplicate[] = [];
+    if (newlyImportedForeignIds.length > 0) {
+      const findSoftDupStmt = db.prepare(`
+        SELECT id, description, date, charged_amount, original_amount, original_currency, card_last_four
+        FROM transactions
+        WHERE user_id = ? AND date = ? AND description = ?
+          AND COALESCE(card_last_four, '') = ?
+          AND charged_amount != ?
+          AND original_currency != 'ILS'
+          AND id != ?
+      `);
+
+      for (const { id: newId, txn } of newlyImportedForeignIds) {
+        const existing = findSoftDupStmt.get(
+          userId,
+          txn.date,
+          txn.description,
+          txn.card_last_four || '',
+          txn.charged_amount,
+          newId
+        ) as any;
+
+        if (existing) {
+          softDuplicates.push({
+            newTransaction: {
+              id: newId,
+              description: txn.description,
+              date: txn.date,
+              charged_amount: txn.charged_amount,
+              original_amount: txn.original_amount,
+              original_currency: txn.original_currency,
+              card_last_four: txn.card_last_four || null,
+            },
+            existingTransaction: {
+              id: existing.id,
+              description: existing.description,
+              date: existing.date,
+              charged_amount: existing.charged_amount,
+              original_amount: existing.original_amount,
+              original_currency: existing.original_currency,
+              card_last_four: existing.card_last_four || null,
+            },
+          });
+        }
+      }
+    }
+
     // Record upload history
     db.prepare(`
       INSERT INTO upload_history (filename, source_company, rows_total, rows_imported, rows_skipped, rows_failed, user_id)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(filename, sourceCompany, transactions.length, imported, skipped, failed, userId);
 
-    res.json({ imported, skipped, failed, autoClassified });
+    res.json({ imported, skipped, failed, autoClassified, softDuplicates });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/upload/resolve-duplicate - Resolve a soft duplicate by removing one transaction
+router.post('/resolve-duplicate', (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const { keepId, removeId } = req.body;
+
+    if (!keepId || !removeId) {
+      res.status(400).json({ error: 'חסרים פרמטרים' });
+      return;
+    }
+
+    const db = getDb();
+
+    // Verify both transactions belong to this user
+    const keepTxn = db.prepare('SELECT id FROM transactions WHERE id = ? AND user_id = ?').get(keepId, userId);
+    const removeTxn = db.prepare('SELECT id FROM transactions WHERE id = ? AND user_id = ?').get(removeId, userId);
+
+    if (!keepTxn || !removeTxn) {
+      res.status(404).json({ error: 'עסקה לא נמצאה' });
+      return;
+    }
+
+    db.prepare('DELETE FROM transactions WHERE id = ? AND user_id = ?').run(removeId, userId);
+    res.json({ success: true });
   } catch (err) {
     next(err);
   }
