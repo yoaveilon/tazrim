@@ -111,11 +111,6 @@ export default function DashboardPage({ month }: Props) {
             <p className={`text-2xl sm:text-3xl font-bold ${remainingColor}`}>
               {formatNIS(remaining)}
             </p>
-            {(cashflow?.rolloverAmount ?? 0) > 0 && (
-              <p className="text-xs text-gray-400 mt-1">
-                כולל {formatNIS(cashflow!.rolloverAmount!)} יתרה מחודש קודם
-              </p>
-            )}
           </div>
         </div>
 

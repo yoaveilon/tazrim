@@ -593,13 +593,12 @@ router.get('/cashflow', (req: Request, res: Response) => {
   // Sort: over-budget first (negative difference), then by actual desc
   categoryForecasts.sort((a: any, b: any) => a.difference - b.difference);
 
-  // ---- 6. MONTHLY ROLLOVER ----
-  // Carry over unused budget from previous month
-  const rolloverAmount = getOrCalculateRollover(db, userId, month);
-
-  // ---- 7. REMAINING TO SPEND ----
-  // remaining = income + rollover - actual expenses
-  const remainingToSpend = expectedIncome + rolloverAmount - totalActual;
+  // ---- 6. REMAINING TO SPEND ----
+  // Sum of positive remaining budget across all categories (forecast - actual, only where forecast > actual)
+  const remainingToSpend = categoryForecasts.reduce(
+    (sum: number, cat: any) => sum + Math.max(0, cat.difference),
+    0
+  );
 
   res.json({
     expectedIncome,
@@ -609,7 +608,6 @@ router.get('/cashflow', (req: Request, res: Response) => {
     totalActualExpenses: totalActual,
     categoryForecasts,
     remainingToSpend,
-    rolloverAmount,
   });
 });
 

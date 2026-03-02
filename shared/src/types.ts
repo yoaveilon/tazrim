@@ -282,10 +282,8 @@ export interface CashFlowData {
   totalActualExpenses: number;
   // Per-category breakdown
   categoryForecasts: CategoryForecast[];
-  // The key number: remaining to spend
+  // The key number: remaining to spend (sum of remaining budget per category)
   remainingToSpend: number;
-  // Rollover from previous month (unused budget carried over)
-  rolloverAmount?: number;
 }
 
 export interface WeekTransaction {
