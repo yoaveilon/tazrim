@@ -5,6 +5,157 @@ import dayjs from 'dayjs';
 
 const router = Router();
 
+// --- Monthly Rollover Helpers ---
+// Calculate forecast vs actual savings for a given month (for rollover calculation)
+function calculateMonthSavings(db: any, userId: number, month: string): {
+  totalSavings: number;
+  details: { category: string; forecast: number; actual: number; savings: number }[];
+} {
+  // Historical averages per category
+  const historicalByCategory = db.prepare(`
+    SELECT
+      c.id as category_id, c.name,
+      SUM(t.charged_amount) as total,
+      COUNT(DISTINCT strftime('%Y-%m', COALESCE(t.processed_date, t.date))) as months_count
+    FROM transactions t
+    JOIN categories c ON t.category_id = c.id
+    WHERE t.user_id = ?
+      AND t.charged_amount > 0
+      AND c.is_expense = 1
+      AND strftime('%Y-%m', COALESCE(t.processed_date, t.date)) < ?
+    GROUP BY c.id
+  `).all(userId, month) as any[];
+
+  const histMap = new Map<number, { total: number; months: number }>();
+  for (const h of historicalByCategory) {
+    histMap.set(h.category_id, { total: h.total, months: h.months_count });
+  }
+
+  // Fixed expenses per category
+  const allFixedExpenses = db.prepare(`
+    SELECT category_id, amount, frequency, start_month
+    FROM fixed_expenses
+    WHERE is_active = 1 AND user_id = ? AND category_id IS NOT NULL
+  `).all(userId) as any[];
+
+  const fixedByCategory = new Map<number, number>();
+  for (const fe of allFixedExpenses) {
+    if (!isExpenseDueInMonth(fe.frequency, fe.start_month, month)) continue;
+    fixedByCategory.set(fe.category_id, (fixedByCategory.get(fe.category_id) || 0) + fe.amount);
+  }
+
+  // Forecast overrides
+  const forecastOverrides = db.prepare(`
+    SELECT category_id, monthly_budget
+    FROM category_forecast_overrides
+    WHERE user_id = ?
+  `).all(userId) as any[];
+
+  const overrideMap = new Map<number, number>();
+  for (const o of forecastOverrides) {
+    overrideMap.set(o.category_id, o.monthly_budget);
+  }
+
+  // Actual expenses per category for this month
+  const actualByCategory = db.prepare(`
+    SELECT
+      c.id as category_id, c.name,
+      SUM(t.charged_amount) as actual
+    FROM transactions t
+    JOIN categories c ON t.category_id = c.id
+    WHERE t.user_id = ?
+      AND t.charged_amount > 0
+      AND c.is_expense = 1
+      AND strftime('%Y-%m', COALESCE(t.processed_date, t.date)) = ?
+    GROUP BY c.id
+  `).all(userId, month) as any[];
+
+  const actualMap = new Map<number, number>();
+  for (const a of actualByCategory) {
+    actualMap.set(a.category_id, a.actual);
+  }
+
+  // Manual fixed expense payments
+  const manualPayments = db.prepare(`
+    SELECT fe.category_id, SUM(fep.amount_paid) as total
+    FROM fixed_expense_payments fep
+    JOIN fixed_expenses fe ON fep.fixed_expense_id = fe.id
+    WHERE fep.month = ? AND fep.user_id = ?
+    GROUP BY fe.category_id
+  `).all(month, userId) as any[];
+
+  for (const mp of manualPayments) {
+    if (mp.category_id) {
+      actualMap.set(mp.category_id, (actualMap.get(mp.category_id) || 0) + mp.total);
+    }
+  }
+
+  // All expense categories
+  const allCategories = db.prepare(
+    'SELECT id, name FROM categories WHERE is_expense = 1'
+  ).all() as any[];
+
+  const details: { category: string; forecast: number; actual: number; savings: number }[] = [];
+  let totalSavings = 0;
+
+  for (const cat of allCategories) {
+    const hist = histMap.get(cat.id);
+    const fixed = fixedByCategory.get(cat.id) || 0;
+    const actual = actualMap.get(cat.id) || 0;
+
+    let forecast = 0;
+    const override = overrideMap.get(cat.id);
+
+    if (override !== undefined) {
+      forecast = override;
+    } else if (hist && hist.months > 0) {
+      forecast = Math.max(Math.round(hist.total / hist.months), fixed);
+    } else if (fixed > 0) {
+      forecast = fixed;
+    } else if (actual > 0) {
+      forecast = actual;
+    }
+
+    if (forecast === 0 && actual === 0) continue;
+
+    const savings = Math.max(0, forecast - actual);
+    if (savings > 0) {
+      details.push({ category: cat.name, forecast, actual, savings });
+      totalSavings += savings;
+    }
+  }
+
+  return { totalSavings, details };
+}
+
+// Get or calculate rollover amount for a given month
+function getOrCalculateRollover(db: any, userId: number, month: string): number {
+  // Check if already calculated
+  const existing = db.prepare(
+    'SELECT rollover_amount FROM monthly_rollover WHERE user_id = ? AND month = ?'
+  ).get(userId, month) as any;
+
+  if (existing) return existing.rollover_amount;
+
+  // Calculate from previous month
+  const prevMonth = dayjs(month + '-01').subtract(1, 'month').format('YYYY-MM');
+  const currentMonth = dayjs().format('YYYY-MM');
+
+  // Only calculate if previous month is fully in the past
+  if (prevMonth >= currentMonth) return 0;
+
+  const { totalSavings, details } = calculateMonthSavings(db, userId, prevMonth);
+
+  if (totalSavings > 0) {
+    db.prepare(`
+      INSERT OR IGNORE INTO monthly_rollover (user_id, month, source_month, rollover_amount, details)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(userId, month, prevMonth, totalSavings, JSON.stringify(details));
+  }
+
+  return totalSavings;
+}
+
 // GET /api/dashboard/summary?month=YYYY-MM
 router.get('/summary', (req: Request, res: Response) => {
   const db = getDb();
@@ -442,10 +593,14 @@ router.get('/cashflow', (req: Request, res: Response) => {
   // Sort: over-budget first (negative difference), then by actual desc
   categoryForecasts.sort((a: any, b: any) => a.difference - b.difference);
 
-  // ---- 6. REMAINING TO SPEND ----
-  // remaining = income - max(actual, forecast)
+  // ---- 6. MONTHLY ROLLOVER ----
+  // Carry over unused budget from previous month
+  const rolloverAmount = getOrCalculateRollover(db, userId, month);
+
+  // ---- 7. REMAINING TO SPEND ----
+  // remaining = income + rollover - max(actual, forecast)
   // Uses the higher of actual expenses vs forecast, so overspending is reflected immediately
-  const remainingToSpend = expectedIncome - Math.max(totalActual, totalForecast);
+  const remainingToSpend = expectedIncome + rolloverAmount - Math.max(totalActual, totalForecast);
 
   res.json({
     expectedIncome,
@@ -455,6 +610,7 @@ router.get('/cashflow', (req: Request, res: Response) => {
     totalActualExpenses: totalActual,
     categoryForecasts,
     remainingToSpend,
+    rolloverAmount,
   });
 });
 
@@ -729,6 +885,22 @@ router.put('/forecast-overrides/:categoryId', (req: Request, res: Response) => {
   `).run(categoryId, userId, monthly_budget, monthly_budget);
 
   res.json({ category_id: categoryId, monthly_budget });
+});
+
+// POST /api/dashboard/recalc-rollover?month=YYYY-MM
+// Recalculate rollover for a given month (useful after editing past transactions)
+router.post('/recalc-rollover', (req: Request, res: Response) => {
+  const db = getDb();
+  const userId = req.user!.id;
+  const month = (req.query.month as string) || dayjs().format('YYYY-MM');
+
+  // Delete existing rollover
+  db.prepare('DELETE FROM monthly_rollover WHERE user_id = ? AND month = ?').run(userId, month);
+
+  // Recalculate
+  const rolloverAmount = getOrCalculateRollover(db, userId, month);
+
+  res.json({ month, rolloverAmount });
 });
 
 export default router;

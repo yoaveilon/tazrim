@@ -284,6 +284,8 @@ export interface CashFlowData {
   categoryForecasts: CategoryForecast[];
   // The key number: remaining to spend
   remainingToSpend: number;
+  // Rollover from previous month (unused budget carried over)
+  rolloverAmount?: number;
 }
 
 export interface WeekTransaction {
