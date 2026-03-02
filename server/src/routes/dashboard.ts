@@ -598,9 +598,8 @@ router.get('/cashflow', (req: Request, res: Response) => {
   const rolloverAmount = getOrCalculateRollover(db, userId, month);
 
   // ---- 7. REMAINING TO SPEND ----
-  // remaining = income + rollover - max(actual, forecast)
-  // Uses the higher of actual expenses vs forecast, so overspending is reflected immediately
-  const remainingToSpend = expectedIncome + rolloverAmount - Math.max(totalActual, totalForecast);
+  // remaining = income + rollover - actual expenses
+  const remainingToSpend = expectedIncome + rolloverAmount - totalActual;
 
   res.json({
     expectedIncome,
