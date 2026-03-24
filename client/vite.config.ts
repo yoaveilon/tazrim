@@ -4,6 +4,7 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  base: process.env.GITHUB_PAGES ? '/tazrim/' : '/',
   resolve: {
     alias: {
       shared: path.resolve(__dirname, '../shared'),

@@ -1,0 +1,48 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build client
+        run: npm run build -w client
+        env:
+          GITHUB_PAGES: true
+          VITE_API_BASE_URL: https://flow-server-2iox.onrender.com
+          VITE_GOOGLE_CLIENT_ID: 1061246839548-684eieg4mbumiaau87gfirrp16qb23mi.apps.googleusercontent.com
+
+      - uses: actions/configure-pages@v4
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: client/dist
+
+      - uses: actions/deploy-pages@v4
+        id: deployment
