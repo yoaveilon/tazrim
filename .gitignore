@@ -8,3 +8,4 @@ dist/
 .DS_Store
 backup.sql
 backup_clean.sql
+.vercel
