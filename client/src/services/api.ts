@@ -9,7 +9,9 @@ import type {
 } from 'shared/src/types';
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL
+    ? `${import.meta.env.VITE_API_BASE_URL}/api`
+    : '/api',
 });
 
 // Automatically add Authorization header

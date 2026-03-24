@@ -1,46 +1,58 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { getDb } from '../db/connection.js';
 
 const router = Router();
 
 // GET /api/settings
-router.get('/', (req: Request, res: Response) => {
-  const db = getDb();
-  const userId = req.user!.id;
-  const rows = db.prepare('SELECT key, value FROM settings WHERE user_id = ?').all(userId) as any[];
-  const settings: Record<string, string> = {};
-  for (const row of rows) {
-    settings[row.key] = row.value;
+router.get('/', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const db = getDb();
+    const userId = req.user!.id;
+    const rows = (await db.execute({
+      sql: 'SELECT key, value FROM settings WHERE user_id = ?',
+      args: [userId],
+    })).rows as any[];
+
+    const settings: Record<string, string> = {};
+    for (const row of rows) {
+      settings[row.key] = row.value;
+    }
+    res.json(settings);
+  } catch (err) {
+    next(err);
   }
-  res.json(settings);
 });
 
 // PATCH /api/settings
-router.patch('/', (req: Request, res: Response) => {
-  const db = getDb();
-  const userId = req.user!.id;
-  const updates = req.body;
+router.patch('/', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const db = getDb();
+    const userId = req.user!.id;
+    const updates = req.body;
 
-  const upsertStmt = db.prepare(`
-    INSERT INTO settings (key, value, user_id) VALUES (?, ?, ?)
-    ON CONFLICT(key, user_id) DO UPDATE SET value = excluded.value
-  `);
+    const stmts = Object.entries(updates).map(([key, value]) => ({
+      sql: `INSERT INTO settings (key, value, user_id) VALUES (?, ?, ?)
+            ON CONFLICT(key, user_id) DO UPDATE SET value = excluded.value`,
+      args: [key, String(value), userId],
+    }));
 
-  const updateAll = db.transaction(() => {
-    for (const [key, value] of Object.entries(updates)) {
-      upsertStmt.run(key, String(value), userId);
+    if (stmts.length > 0) {
+      await db.batch(stmts, 'write');
     }
-  });
 
-  updateAll();
+    const rows = (await db.execute({
+      sql: 'SELECT key, value FROM settings WHERE user_id = ?',
+      args: [userId],
+    })).rows as any[];
 
-  // Return all settings
-  const rows = db.prepare('SELECT key, value FROM settings WHERE user_id = ?').all(userId) as any[];
-  const settings: Record<string, string> = {};
-  for (const row of rows) {
-    settings[row.key] = row.value;
+    const settings: Record<string, string> = {};
+    for (const row of rows) {
+      settings[row.key] = row.value;
+    }
+    res.json(settings);
+  } catch (err) {
+    next(err);
   }
-  res.json(settings);
 });
 
 export default router;

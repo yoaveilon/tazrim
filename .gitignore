@@ -6,3 +6,5 @@ dist/
 *.sqlite
 .env
 .DS_Store
+backup.sql
+backup_clean.sql

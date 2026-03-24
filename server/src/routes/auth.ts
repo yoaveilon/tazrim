@@ -25,7 +25,6 @@ router.post('/google', async (req: Request, res: Response, next: NextFunction) =
       return;
     }
 
-    // Verify Google token
     const client = new OAuth2Client(GOOGLE_CLIENT_ID);
     const ticket = await client.verifyIdToken({
       idToken: credential,
@@ -42,41 +41,45 @@ router.post('/google', async (req: Request, res: Response, next: NextFunction) =
 
     const db = getDb();
 
-    // Find or create user
-    let user = db.prepare('SELECT * FROM users WHERE google_id = ?').get(googleId) as any;
+    let user = (await db.execute({
+      sql: 'SELECT * FROM users WHERE google_id = ?',
+      args: [googleId],
+    })).rows[0] as any;
 
     if (!user) {
-      const result = db.prepare(`
-        INSERT INTO users (google_id, email, name, picture)
-        VALUES (?, ?, ?, ?)
-      `).run(googleId, email, name || email, picture || null);
+      const result = await db.execute({
+        sql: `INSERT INTO users (google_id, email, name, picture) VALUES (?, ?, ?, ?)`,
+        args: [googleId, email, name || email, picture || null],
+      });
 
-      user = db.prepare('SELECT * FROM users WHERE id = ?').get(result.lastInsertRowid);
+      user = (await db.execute({
+        sql: 'SELECT * FROM users WHERE id = ?',
+        args: [result.lastInsertRowid!],
+      })).rows[0] as any;
 
-      // Copy default classification rules for the new user (from the seed rules that have user_id = NULL)
-      db.prepare(`
-        INSERT INTO classification_rules (keyword, category_id, priority, is_regex, user_id)
-        SELECT keyword, category_id, priority, is_regex, ?
-        FROM classification_rules
-        WHERE user_id IS NULL
-      `).run(user.id);
-
-      // Copy default settings for the new user
-      db.prepare(`
-        INSERT INTO settings (key, value, user_id)
-        SELECT key, value, ?
-        FROM settings
-        WHERE user_id IS NULL
-      `).run(user.id);
+      // Copy default classification rules and settings for new user
+      await db.batch([
+        {
+          sql: `INSERT INTO classification_rules (keyword, category_id, priority, is_regex, user_id)
+                SELECT keyword, category_id, priority, is_regex, ?
+                FROM classification_rules WHERE user_id IS NULL`,
+          args: [user.id],
+        },
+        {
+          sql: `INSERT INTO settings (key, value, user_id)
+                SELECT key, value, ?
+                FROM settings WHERE user_id IS NULL`,
+          args: [user.id],
+        },
+      ], 'write');
     } else {
-      // Update name/picture if changed
-      db.prepare('UPDATE users SET name = ?, picture = ? WHERE id = ?')
-        .run(name || user.name, picture || user.picture, user.id);
+      await db.execute({
+        sql: 'UPDATE users SET name = ?, picture = ? WHERE id = ?',
+        args: [name || user.name, picture || user.picture, user.id],
+      });
     }
 
-    // Create app JWT
     const token = createToken({ id: user.id, email: user.email, name: user.name });
-
     const adminEmail = process.env.ADMIN_EMAIL;
 
     res.json({
@@ -96,42 +99,47 @@ router.post('/google', async (req: Request, res: Response, next: NextFunction) =
   }
 });
 
-// GET /api/auth/me - Get current user info
-router.get('/me', (req: Request, res: Response) => {
-  // Manually verify token since auth middleware skips /api/auth paths
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    res.status(401).json({ error: 'לא מחובר' });
-    return;
-  }
-
-  let decoded: AuthUser;
+// GET /api/auth/me
+router.get('/me', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    decoded = jwt.verify(authHeader.split(' ')[1], JWT_SECRET) as AuthUser;
-  } catch {
-    res.status(401).json({ error: 'טוקן לא תקין' });
-    return;
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({ error: 'לא מחובר' });
+      return;
+    }
+
+    let decoded: AuthUser;
+    try {
+      decoded = jwt.verify(authHeader.split(' ')[1], JWT_SECRET) as AuthUser;
+    } catch {
+      res.status(401).json({ error: 'טוקן לא תקין' });
+      return;
+    }
+
+    const db = getDb();
+    const user = (await db.execute({
+      sql: 'SELECT * FROM users WHERE id = ?',
+      args: [decoded.id],
+    })).rows[0] as any;
+
+    if (!user) {
+      res.status(404).json({ error: 'משתמש לא נמצא' });
+      return;
+    }
+
+    const adminEmail = process.env.ADMIN_EMAIL;
+    res.json({
+      id: user.id,
+      google_id: user.google_id,
+      email: user.email,
+      name: user.name,
+      picture: user.picture,
+      created_at: user.created_at,
+      is_admin: !!(adminEmail && user.email === adminEmail),
+    });
+  } catch (err) {
+    next(err);
   }
-
-  const db = getDb();
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(decoded.id) as any;
-
-  if (!user) {
-    res.status(404).json({ error: 'משתמש לא נמצא' });
-    return;
-  }
-
-  const adminEmail = process.env.ADMIN_EMAIL;
-
-  res.json({
-    id: user.id,
-    google_id: user.google_id,
-    email: user.email,
-    name: user.name,
-    picture: user.picture,
-    created_at: user.created_at,
-    is_admin: !!(adminEmail && user.email === adminEmail),
-  });
 });
 
 export default router;

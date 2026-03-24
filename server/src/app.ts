@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { errorHandler } from './middleware/error-handler.js';
 import { authMiddleware } from './middleware/auth.js';
@@ -24,16 +25,16 @@ app.use(cors());
 app.use(express.json());
 
 // Health check (no auth required)
-app.get('/api/health', (_req, res) => {
+app.get('/api/health', async (_req, res) => {
   try {
     const db = getDb();
-    const migrations = db.prepare('SELECT name FROM _migrations ORDER BY name').all();
-    const dupes = db.prepare(`
+    const migrations = (await db.execute('SELECT name FROM _migrations ORDER BY name')).rows;
+    const dupes = (await db.execute(`
       SELECT user_id, date, description, charged_amount, COALESCE(card_last_four, '') as card, COUNT(*) as cnt
       FROM transactions
       GROUP BY user_id, date, description, charged_amount, COALESCE(card_last_four, '')
       HAVING cnt > 1
-    `).all();
+    `)).rows;
     res.json({ status: 'ok', migrations: migrations.map((m: any) => m.name), duplicates: dupes.length });
   } catch {
     res.json({ status: 'ok' });
@@ -57,15 +58,15 @@ app.use('/api/dashboard', dashboardRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/admin', adminRouter);
 
-// Serve client static files in production
+// Serve client static files in production (only if client/dist exists)
 if (process.env.NODE_ENV === 'production') {
   const clientDist = path.join(__dirname, '../../client/dist');
-  app.use(express.static(clientDist));
-
-  // SPA fallback - serve index.html for all non-API routes
-  app.get('*', (_req, res) => {
-    res.sendFile(path.join(clientDist, 'index.html'));
-  });
+  if (fs.existsSync(clientDist)) {
+    app.use(express.static(clientDist));
+    app.get('*', (_req, res) => {
+      res.sendFile(path.join(clientDist, 'index.html'));
+    });
+  }
 }
 
 // Error handler
