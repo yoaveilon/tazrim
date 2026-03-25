@@ -2,6 +2,10 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import type { User, AuthResponse } from 'shared/src/types';
 import axios from 'axios';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL
+  ? `${import.meta.env.VITE_API_BASE_URL}/api`
+  : '/api';
+
 interface AuthContextType {
   user: User | null;
   token: string | null;
@@ -30,7 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (token) {
       axios
-        .get('/api/auth/me', {
+        .get(`${API_BASE}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         .then((res) => {
@@ -51,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const login = useCallback(async (credential: string) => {
-    const { data } = await axios.post<AuthResponse>('/api/auth/google', { credential });
+    const { data } = await axios.post<AuthResponse>(`${API_BASE}/auth/google`, { credential });
     localStorage.setItem('token', data.token);
     setToken(data.token);
     setUser(data.user);
