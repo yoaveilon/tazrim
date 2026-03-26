@@ -36,7 +36,7 @@ jobs:
         env:
           GITHUB_PAGES: true
           VITE_API_BASE_URL: https://flow-server-2iox.onrender.com
-          VITE_GOOGLE_CLIENT_ID: 1061246839548-684eieg4mbumiaau87gfirrp16qb23mi.apps.googleusercontent.com
+          VITE_GOOGLE_CLIENT_ID: 412989978996-v16kci60ck2itjnm62gu3cs4cijbak3p.apps.googleusercontent.com
 
       - uses: actions/configure-pages@v4
 
