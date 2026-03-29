@@ -150,8 +150,8 @@ router.post('/auto-detect', async (req: Request, res: Response, next: NextFuncti
 
       if (match) {
         insertStmts.push({
-          sql: `INSERT OR IGNORE INTO fixed_expense_payments (fixed_expense_id, month, amount_paid, user_id) VALUES (?, ?, ?, ?)`,
-          args: [fe.id, month, match.charged_amount, userId],
+          sql: `INSERT OR IGNORE INTO fixed_expense_payments (fixed_expense_id, month, amount_paid, user_id, matched_transaction_id) VALUES (?, ?, ?, ?, ?)`,
+          args: [fe.id, month, match.charged_amount, userId, match.id],
         });
         matched.push({
           fixedExpenseName: fe.name as string,

@@ -65,7 +65,8 @@ async function calculateMonthSavings(db: Client, userId: number, month: string):
   const manualPayments = (await db.execute({
     sql: `SELECT fe.category_id, SUM(fep.amount_paid) as total
           FROM fixed_expense_payments fep JOIN fixed_expenses fe ON fep.fixed_expense_id = fe.id
-          WHERE fep.month = ? AND fep.user_id = ? GROUP BY fe.category_id`,
+          WHERE fep.month = ? AND fep.user_id = ? AND fep.matched_transaction_id IS NULL
+          GROUP BY fe.category_id`,
     args: [month, userId],
   })).rows as any[];
 
@@ -289,7 +290,8 @@ router.get('/cashflow', async (req: Request, res: Response, next: NextFunction) 
     const manualPayments = (await db.execute({
       sql: `SELECT fe.category_id, SUM(fep.amount_paid) as total
             FROM fixed_expense_payments fep JOIN fixed_expenses fe ON fep.fixed_expense_id = fe.id
-            WHERE fep.month = ? AND fep.user_id = ? GROUP BY fe.category_id`,
+            WHERE fep.month = ? AND fep.user_id = ? AND fep.matched_transaction_id IS NULL
+            GROUP BY fe.category_id`,
       args: [month, userId],
     })).rows as any[];
 
@@ -303,7 +305,7 @@ router.get('/cashflow', async (req: Request, res: Response, next: NextFunction) 
     const manualNoCatRow = (await db.execute({
       sql: `SELECT COALESCE(SUM(fep.amount_paid), 0) as total
             FROM fixed_expense_payments fep JOIN fixed_expenses fe ON fep.fixed_expense_id = fe.id
-            WHERE fep.month = ? AND fep.user_id = ? AND fe.category_id IS NULL`,
+            WHERE fep.month = ? AND fep.user_id = ? AND fe.category_id IS NULL AND fep.matched_transaction_id IS NULL`,
       args: [month, userId],
     })).rows[0] as any;
     const manualNoCategory = Number(manualNoCatRow.total);
@@ -375,7 +377,7 @@ router.get('/cashflow', async (req: Request, res: Response, next: NextFunction) 
       const fixedPayments = (await db.execute({
         sql: `SELECT fep.id, fe.name as description, fep.amount_paid as charged_amount, fe.billing_day
               FROM fixed_expense_payments fep JOIN fixed_expenses fe ON fep.fixed_expense_id = fe.id
-              WHERE fep.month = ? AND fep.user_id = ? AND fe.category_id = ?`,
+              WHERE fep.month = ? AND fep.user_id = ? AND fe.category_id = ? AND fep.matched_transaction_id IS NULL`,
         args: [month, userId, catId],
       })).rows as any[];
 
