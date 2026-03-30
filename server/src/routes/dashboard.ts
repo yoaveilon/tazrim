@@ -373,13 +373,30 @@ router.get('/cashflow', async (req: Request, res: Response, next: NextFunction) 
 
       if (forecast === 0 && actual === 0) continue;
 
-      // Fixed payments for this category
+      // Fixed payments for this category (already paid, not matched to credit card)
       const fixedPayments = (await db.execute({
         sql: `SELECT fep.id, fe.name as description, fep.amount_paid as charged_amount, fe.billing_day
               FROM fixed_expense_payments fep JOIN fixed_expenses fe ON fep.fixed_expense_id = fe.id
               WHERE fep.month = ? AND fep.user_id = ? AND fe.category_id = ? AND fep.matched_transaction_id IS NULL`,
         args: [month, userId, catId],
       })).rows as any[];
+
+      // Unpaid fixed expenses for this category (pending/expected)
+      const unpaidFixedExpenses = (await db.execute({
+        sql: `SELECT fe.id, fe.name as description, fe.amount as charged_amount, fe.billing_day, fe.frequency, fe.start_month
+              FROM fixed_expenses fe
+              WHERE fe.is_active = 1 AND fe.user_id = ? AND fe.category_id = ?
+                AND fe.id NOT IN (
+                  SELECT fep.fixed_expense_id FROM fixed_expense_payments fep
+                  WHERE fep.month = ? AND fep.user_id = ?
+                )`,
+        args: [userId, catId, month, userId],
+      })).rows as any[];
+
+      // Filter by frequency
+      const pendingFixed = unpaidFixedExpenses.filter((fe: any) =>
+        isExpenseDueInMonth(fe.frequency as string || 'monthly', fe.start_month as string || null, month)
+      );
 
       // Weekly breakdown — run all week queries in parallel
       const weekActuals = await Promise.all(weekRanges.map(async (week) => {
@@ -440,7 +457,7 @@ router.get('/cashflow', async (req: Request, res: Response, next: NextFunction) 
         }
 
         const txnList = transactions.map((t: any) => ({
-          id: Number(t.id), date: t.date, description: t.description, charged_amount: Number(t.charged_amount),
+          id: Number(t.id), date: t.date, description: t.description, charged_amount: Number(t.charged_amount), pending: false,
         }));
 
         for (const fp of fixedPayments) {
@@ -450,6 +467,19 @@ router.get('/cashflow', async (req: Request, res: Response, next: NextFunction) 
               date: `${month}-${String(Number(fp.billing_day)).padStart(2, '0')}`,
               description: `קבועה: ${fp.description}`,
               charged_amount: Number(fp.charged_amount),
+              pending: false,
+            });
+          }
+        }
+
+        for (const pf of pendingFixed) {
+          if (Number(pf.billing_day) >= week.startDay && Number(pf.billing_day) <= week.endDay) {
+            txnList.push({
+              id: -100000 - Number(pf.id),
+              date: `${month}-${String(Number(pf.billing_day)).padStart(2, '0')}`,
+              description: `קבועה: ${pf.description}`,
+              charged_amount: Number(pf.charged_amount),
+              pending: true,
             });
           }
         }

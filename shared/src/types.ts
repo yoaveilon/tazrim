@@ -291,6 +291,7 @@ export interface WeekTransaction {
   date: string;
   description: string;
   charged_amount: number;
+  pending?: boolean;
 }
 
 export interface CategoryWeekData {

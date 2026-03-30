@@ -585,13 +585,14 @@ function CategoryCard({ cat, onUpdateForecast, expenseCategories }: { cat: Categ
                   <div className="bg-gray-50/40 border-b border-gray-50">
                     {week.transactions.map((txn) => {
                       const isFixedExpense = txn.id < 0;
+                      const isPending = txn.pending;
                       return (
-                        <div key={txn.id} className="px-7 py-2 flex items-center justify-between text-sm border-b border-gray-50/80 last:border-0">
+                        <div key={txn.id} className={`px-7 py-2 flex items-center justify-between text-sm border-b border-gray-50/80 last:border-0 ${isPending ? 'opacity-40' : ''}`}>
                           <div className="flex items-center gap-2 flex-1 min-w-0">
                             <span className="text-xs text-gray-400 font-mono shrink-0">
                               {new Date(txn.date).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}
                             </span>
-                            {!isFixedExpense && editingTxnId === txn.id ? (
+                            {!isFixedExpense && !isPending && editingTxnId === txn.id ? (
                               <select
                                 autoFocus
                                 className="input py-1 text-xs max-w-[160px]"
@@ -611,16 +612,16 @@ function CategoryCard({ cat, onUpdateForecast, expenseCategories }: { cat: Categ
                                 ))}
                               </select>
                             ) : (
-                              <span className={`truncate ${isFixedExpense ? 'text-primary-500 font-medium' : 'text-gray-700'}`}>
-                                {txn.description}
+                              <span className={`truncate ${isPending ? 'text-gray-400 italic' : isFixedExpense ? 'text-primary-500 font-medium' : 'text-gray-700'}`}>
+                                {txn.description}{isPending ? ' (צפוי)' : ''}
                               </span>
                             )}
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0 mr-2">
-                            <span className="font-mono text-sm text-gray-900 font-medium">
+                            <span className={`font-mono text-sm font-medium ${isPending ? 'text-gray-400' : 'text-gray-900'}`}>
                               {formatNIS(txn.charged_amount)}
                             </span>
-                            {!isFixedExpense && editingTxnId !== txn.id && (
+                            {!isFixedExpense && !isPending && editingTxnId !== txn.id && (
                               <button
                                 onClick={() => setEditingTxnId(txn.id)}
                                 className="text-gray-300 hover:text-primary-500 transition-colors"
