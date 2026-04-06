@@ -54,20 +54,49 @@ function parseIsracardFile(rows: string[][], filename: string): ParseResult {
   const errors: string[] = [];
   const parsed: ParsedTransaction[] = [];
 
-  // Extract card last four digits from metadata
+  // Extract card last four digits and billing date from metadata rows
   let cardLastFour: string | undefined;
+  let metaBillingDate: string | undefined;
   for (let i = 0; i < Math.min(rows.length, 10); i++) {
     const rowText = rows[i].join(' ');
     // Match pattern like "9117" from card identifier rows
-    const cardMatch = rowText.match(/[-–]\s*(\d{4})\b/);
-    if (cardMatch) {
-      cardLastFour = cardMatch[1];
-      break;
+    if (!cardLastFour) {
+      const cardMatch = rowText.match(/[-–]\s*(\d{4})\b/);
+      if (cardMatch) {
+        cardLastFour = cardMatch[1];
+      }
+    }
+    // Match "לחיוב ב-02.04" or "לחיוב ב-02/04" in metadata rows
+    if (!metaBillingDate) {
+      const billingMatch = rowText.match(/לחיוב ב-?\s*(\d{1,2}[./]\d{1,2}(?:[./]\d{2,4})?)/);
+      if (billingMatch) {
+        try {
+          let dateStr = billingMatch[1];
+          // If year is missing (e.g. "02.04"), extract from metadata month row
+          if (!/\d{4}/.test(dateStr) && !/\d{2}[./]\d{2}[./]\d{2,4}/.test(dateStr)) {
+            // Look for year in "אפריל 2026" or similar metadata
+            for (let j = 0; j < Math.min(rows.length, 5); j++) {
+              const yearMatch = rows[j].join(' ').match(/\b(20\d{2})\b/);
+              if (yearMatch) {
+                dateStr = dateStr + '.' + yearMatch[1];
+                break;
+              }
+            }
+          }
+          const rawDate = parseHebrewDate(dateStr);
+          if (rawDate) {
+            // Shift one month back: billing month's transactions belong to previous month
+            const d = new Date(rawDate);
+            d.setMonth(d.getMonth() - 1);
+            metaBillingDate = d.toISOString().slice(0, 10);
+          }
+        } catch { /* ignore */ }
+      }
     }
   }
 
   // Find all sections and their header rows
-  const sections = findIsracardSections(rows);
+  const sections = findIsracardSections(rows, metaBillingDate);
 
   for (const section of sections) {
     const mapping = buildColumnMapping(section.headers);
@@ -104,7 +133,7 @@ interface IsracardSection {
   dataRowIndices: number[];
 }
 
-function findIsracardSections(rows: string[][]): IsracardSection[] {
+function findIsracardSections(rows: string[][], metaBillingDate?: string): IsracardSection[] {
   const sections: IsracardSection[] = [];
   let i = 0;
 
@@ -143,6 +172,11 @@ function findIsracardSections(rows: string[][]): IsracardSection[] {
         }
         headerRowIdx++;
         if (headerRowIdx - i > 5) break; // safety
+      }
+
+      // Fall back to metadata billing date if section header had no date
+      if (!billingDate && metaBillingDate && sectionType === 'charged') {
+        billingDate = metaBillingDate;
       }
 
       if (headerRowIdx < rows.length) {
