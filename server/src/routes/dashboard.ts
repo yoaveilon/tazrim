@@ -508,7 +508,7 @@ router.get('/cashflow', async (req: Request, res: Response, next: NextFunction) 
     categoryForecasts.sort((a: any, b: any) => a.difference - b.difference);
 
     const remainingToSpend = categoryForecasts.reduce(
-      (sum: number, cat: any) => sum + Math.max(0, cat.difference), 0
+      (sum: number, cat: any) => sum + cat.difference, 0
     );
 
     res.json({ expectedIncome, actualIncome, variableIncome, totalForecastExpenses: totalForecast, totalActualExpenses: totalActual, categoryForecasts, remainingToSpend });

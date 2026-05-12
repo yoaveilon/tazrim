@@ -78,12 +78,14 @@ export default function DashboardPage({ month }: Props) {
   };
 
   const remaining = cashflow?.remainingToSpend || 0;
-  const remainingColor = remaining >= 0 ? 'text-success-500' : 'text-danger-400';
+  const isOverspent = remaining < 0;
+  const remainingColor = isOverspent ? 'text-danger-400' : 'text-success-500';
 
   // Progress bar: how much of expected income has been spent
   const spentPercent = cashflow?.expectedIncome
-    ? Math.min(100, Math.round((cashflow.totalActualExpenses / cashflow.expectedIncome) * 100))
+    ? Math.round((cashflow.totalActualExpenses / cashflow.expectedIncome) * 100)
     : 0;
+  const donutPercent = Math.min(spentPercent, 100);
 
   // Mutation for setting forecast overrides
   const overrideMutation = useMutation({
@@ -105,11 +107,13 @@ export default function DashboardPage({ month }: Props) {
         {/* Balance card */}
         <div className="card !p-0 overflow-hidden">
           <div className="px-5 pt-5 pb-1">
-            <span className="text-xs font-semibold text-danger-400 tracking-wide">נותר להוציא</span>
+            <span className={`text-xs font-semibold tracking-wide ${isOverspent ? 'text-danger-400' : 'text-success-500'}`}>
+              {isOverspent ? 'חריגה מהתקציב' : 'נותר להוציא'}
+            </span>
           </div>
           <div className="px-5 pb-5">
             <p className={`text-2xl sm:text-3xl font-bold ${remainingColor}`}>
-              {formatNIS(remaining)}
+              {formatNIS(Math.abs(remaining))}
             </p>
           </div>
         </div>
@@ -156,13 +160,13 @@ export default function DashboardPage({ month }: Props) {
                   fill="none"
                   strokeWidth="10"
                   strokeLinecap="round"
-                  stroke={spentPercent > 90 ? '#FF6B6B' : spentPercent > 70 ? '#FF6B35' : '#6C5CE7'}
-                  strokeDasharray={`${spentPercent * 2.64} ${264 - spentPercent * 2.64}`}
+                  stroke={spentPercent > 100 ? '#DC2626' : spentPercent > 90 ? '#FF6B6B' : spentPercent > 70 ? '#FF6B35' : '#6C5CE7'}
+                  strokeDasharray={`${donutPercent * 2.64} ${264 - donutPercent * 2.64}`}
                   className="transition-all duration-700 ease-out"
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className={`text-lg sm:text-xl font-bold ${spentPercent > 90 ? 'text-danger-400' : spentPercent > 70 ? 'text-warning-500' : 'text-accent-blue'}`}>
+                <span className={`text-lg sm:text-xl font-bold ${spentPercent > 100 ? 'text-danger-400' : spentPercent > 90 ? 'text-danger-400' : spentPercent > 70 ? 'text-warning-500' : 'text-accent-blue'}`}>
                   {spentPercent}%
                 </span>
               </div>
