@@ -423,7 +423,7 @@ function CategoryCard({ cat, onUpdateForecast, expenseCategories }: { cat: Categ
     onError: () => toast.error('שגיאה בעדכון'),
   });
 
-  const percent = cat.forecast > 0 ? Math.min(100, Math.round((cat.actual / cat.forecast) * 100)) : (cat.actual > 0 ? 100 : 0);
+  const percent = cat.forecast > 0 ? Math.round((cat.actual / cat.forecast) * 100) : (cat.actual > 0 ? 100 : 0);
   const isAtOrOverBudget = cat.difference <= 5; // within ₪5 or over
   const noForecast = cat.monthsOfData === 0;
 
@@ -461,12 +461,13 @@ function CategoryCard({ cat, onUpdateForecast, expenseCategories }: { cat: Categ
     if (e.key === 'Escape') setIsEditing(false);
   }
 
-  // Progress bar color: purple under budget, orange when at/over budget (within ₪5)
-  const barColor = isAtOrOverBudget
-    ? '#FF6B35'
-    : noForecast
-      ? '#D1D5DB'
-      : '#6C5CE7';
+  const barColor = percent > 100
+    ? '#DC2626'
+    : isAtOrOverBudget
+      ? '#FF6B35'
+      : noForecast
+        ? '#D1D5DB'
+        : '#6C5CE7';
 
   return (
     <div className="bg-white rounded-3xl border border-gray-100/80 shadow-card hover:shadow-card-hover transition-all duration-200 overflow-hidden">
@@ -521,14 +522,21 @@ function CategoryCard({ cat, onUpdateForecast, expenseCategories }: { cat: Categ
 
       {/* Progress bar */}
       <div className="px-5 pb-4">
-        <div className="w-full rounded-full h-2.5 overflow-hidden bg-gray-100">
-          <div
-            className="h-2.5 rounded-full transition-all duration-500"
-            style={{
-              width: noForecast ? '100%' : `${Math.min(percent, 100)}%`,
-              backgroundColor: barColor,
-            }}
-          />
+        <div className="flex items-center gap-2">
+          <div className="flex-1 rounded-full h-2.5 overflow-hidden bg-gray-100">
+            <div
+              className="h-2.5 rounded-full transition-all duration-500"
+              style={{
+                width: noForecast ? '100%' : `${Math.min(percent, 100)}%`,
+                backgroundColor: barColor,
+              }}
+            />
+          </div>
+          {!noForecast && (
+            <span className={`text-xs font-semibold min-w-[2.5rem] text-left ${percent > 100 ? 'text-danger-400' : isAtOrOverBudget ? 'text-warning-500' : 'text-gray-400'}`}>
+              {percent}%
+            </span>
+          )}
         </div>
       </div>
 
