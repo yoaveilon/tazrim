@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { getCashFlow, setForecastOverride, getIncomeRecords, updateIncomeRecord, getVariableIncome, getCategories, updateTransaction, createTransaction } from '../../services/api';
+import { getCashFlow, setForecastOverride, getIncomeRecords, updateIncomeRecord, getVariableIncome, getCategories, updateTransaction, createTransaction, getMonthlyBudgets, saveMonthlyBudgets } from '../../services/api';
 import { formatNIS } from '../../utils/currency';
 import { formatMonthHebrew } from '../../utils/date';
 import type { CategoryForecast, IncomeRecord, Category, CreateTransactionInput } from 'shared/src/types';
-import { ChevronDown, MoreVertical, Check, X, ArrowLeftRight, Plus } from 'lucide-react';
+import { ChevronDown, MoreVertical, Check, X, ArrowLeftRight, Plus, Calculator } from 'lucide-react';
 
 interface Props {
   month: string;
@@ -17,6 +17,8 @@ export default function DashboardPage({ month }: Props) {
   const [editingIncomeValue, setEditingIncomeValue] = useState('');
   const [addExpenseOpen, setAddExpenseOpen] = useState(false);
   const [newExpense, setNewExpense] = useState({ date: '', description: '', charged_amount: '', category_id: '', notes: '' });
+  const [planOpen, setPlanOpen] = useState(false);
+  const [planBudgets, setPlanBudgets] = useState<Record<number, string>>({});
 
   const { data: cashflow } = useQuery({
     queryKey: ['cashflow', month],
@@ -40,7 +42,24 @@ export default function DashboardPage({ month }: Props) {
 
   const expenseCategories = categories?.filter((c: Category) => c.is_expense) || [];
 
+  const { data: monthlyBudgetsData } = useQuery({
+    queryKey: ['monthly-budgets', month],
+    queryFn: () => getMonthlyBudgets(month),
+  });
+
   const queryClient = useQueryClient();
+
+  const planMutation = useMutation({
+    mutationFn: (budgets: { category_id: number; budget: number | null }[]) =>
+      saveMonthlyBudgets(month, budgets),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['monthly-budgets'] });
+      queryClient.invalidateQueries({ queryKey: ['cashflow'] });
+      toast.success('התכנון נשמר בהצלחה');
+      setPlanOpen(false);
+    },
+    onError: () => toast.error('שגיאה בשמירת התכנון'),
+  });
 
   const incomeMutation = useMutation({
     mutationFn: ({ id, ...input }: { id: number; expected_amount?: number; actual_amount?: number; status?: 'expected' | 'received' | 'partial' }) =>
@@ -287,13 +306,29 @@ export default function DashboardPage({ month }: Props) {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-gray-900">פירוט הוצאות לפי קטגוריות</h3>
-          <button
-            onClick={() => { setNewExpense({ date: new Date().toISOString().slice(0, 10), description: '', charged_amount: '', category_id: '', notes: '' }); setAddExpenseOpen(true); }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary-50 text-accent-blue text-sm font-medium hover:bg-primary-100 transition-colors"
-          >
-            <Plus className="w-4 h-4" strokeWidth={1.5} />
-            הוצאה
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                const budgetMap: Record<number, string> = {};
+                for (const mb of (monthlyBudgetsData || [])) {
+                  budgetMap[Number(mb.category_id)] = String(mb.budget);
+                }
+                setPlanBudgets(budgetMap);
+                setPlanOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-success-50 text-success-600 text-sm font-medium hover:bg-success-100 transition-colors"
+            >
+              <Calculator className="w-4 h-4" strokeWidth={1.5} />
+              תכנן חודש
+            </button>
+            <button
+              onClick={() => { setNewExpense({ date: new Date().toISOString().slice(0, 10), description: '', charged_amount: '', category_id: '', notes: '' }); setAddExpenseOpen(true); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary-50 text-accent-blue text-sm font-medium hover:bg-primary-100 transition-colors"
+            >
+              <Plus className="w-4 h-4" strokeWidth={1.5} />
+              הוצאה
+            </button>
+          </div>
         </div>
 
         {/* Add expense modal */}
@@ -376,6 +411,86 @@ export default function DashboardPage({ month }: Props) {
             </div>
           </>
         )}
+        {/* Plan month modal */}
+        {planOpen && (
+          <>
+            <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40" onClick={() => setPlanOpen(false)} />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-3xl shadow-lg p-6 w-full max-w-md max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                <h4 className="text-lg font-bold text-gray-900 mb-2">תכנון חודש {formatMonthHebrew(month)}</h4>
+                <p className="text-sm text-gray-500 mb-4">הגדר תקציב לקטגוריות ספציפיות. היתרה תחושב אוטומטית.</p>
+
+                {(() => {
+                  const totalPlanned = Object.values(planBudgets).reduce((sum, v) => sum + (parseFloat(v) || 0), 0);
+                  const income = cashflow?.expectedIncome || 0;
+                  const variableRemaining = income - totalPlanned;
+                  return (
+                    <>
+                      <div className={`rounded-2xl p-4 mb-4 ${variableRemaining >= 0 ? 'bg-success-50' : 'bg-danger-50'}`}>
+                        <div className="flex justify-between items-center text-sm mb-1">
+                          <span className="text-gray-600">הכנסה צפויה</span>
+                          <span className="font-semibold">{formatNIS(income)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm mb-1">
+                          <span className="text-gray-600">סה״כ מתוכנן</span>
+                          <span className="font-semibold">{formatNIS(totalPlanned)}</span>
+                        </div>
+                        <div className="border-t border-gray-200 my-2" />
+                        <div className="flex justify-between items-center">
+                          <span className={`text-sm font-bold ${variableRemaining >= 0 ? 'text-success-600' : 'text-danger-400'}`}>
+                            {variableRemaining >= 0 ? 'נותר להוצאות משתנות' : 'חריגה מההכנסה'}
+                          </span>
+                          <span className={`text-lg font-bold ${variableRemaining >= 0 ? 'text-success-600' : 'text-danger-400'}`}>
+                            {formatNIS(Math.abs(variableRemaining))}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        {expenseCategories.map((c: Category) => (
+                          <div key={c.id} className="flex items-center gap-3">
+                            <span className="text-sm text-gray-700 flex-1">{c.name}</span>
+                            <div className="relative">
+                              <input
+                                type="number"
+                                inputMode="numeric"
+                                placeholder="—"
+                                value={planBudgets[c.id] || ''}
+                                onChange={(e) => setPlanBudgets(prev => ({ ...prev, [c.id]: e.target.value }))}
+                                className="w-28 px-3 py-1.5 border border-gray-200 rounded-xl text-sm font-mono text-left focus:outline-none focus:ring-1 focus:ring-primary-400"
+                              />
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">₪</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()}
+
+                <div className="flex gap-2 mt-5">
+                  <button
+                    onClick={() => {
+                      const budgets = expenseCategories.map((c: Category) => ({
+                        category_id: c.id,
+                        budget: planBudgets[c.id] ? parseFloat(planBudgets[c.id]) : null,
+                      }));
+                      planMutation.mutate(budgets);
+                    }}
+                    disabled={planMutation.isPending}
+                    className="btn-primary flex-1"
+                  >
+                    {planMutation.isPending ? 'שומר...' : 'שמור תכנון'}
+                  </button>
+                  <button onClick={() => setPlanOpen(false)} className="btn-secondary flex-1">
+                    ביטול
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
         {cashflow?.categoryForecasts?.length ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...cashflow.categoryForecasts].sort((a: CategoryForecast, b: CategoryForecast) => {

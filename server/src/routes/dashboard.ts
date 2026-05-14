@@ -259,6 +259,17 @@ router.get('/cashflow', async (req: Request, res: Response, next: NextFunction) 
       overrideMap.set(Number(o.category_id), Number(o.monthly_budget));
     }
 
+    // ---- 3c. MONTHLY BUDGETS (per-month, highest priority) ----
+    const monthlyBudgets = (await db.execute({
+      sql: `SELECT category_id, budget FROM monthly_category_budgets WHERE user_id = ? AND month = ?`,
+      args: [userId, month],
+    })).rows as any[];
+
+    const monthlyBudgetMap = new Map<number, number>();
+    for (const mb of monthlyBudgets) {
+      monthlyBudgetMap.set(Number(mb.category_id), Number(mb.budget));
+    }
+
     // Fixed expenses without category
     const fixedNoCatRows = (await db.execute({
       sql: `SELECT amount, frequency, start_month FROM fixed_expenses WHERE is_active = 1 AND user_id = ? AND category_id IS NULL`,
@@ -354,10 +365,15 @@ router.get('/cashflow', async (req: Request, res: Response, next: NextFunction) 
       const actual = actualMap.get(catId) || 0;
       let forecast = 0;
       let monthsOfData = 0;
+      const monthlyBudget = monthlyBudgetMap.get(catId);
       const override = overrideMap.get(catId);
+      const hasMonthlyBudget = monthlyBudget !== undefined;
       const hasOverride = override !== undefined;
 
-      if (hasOverride) {
+      if (hasMonthlyBudget) {
+        forecast = monthlyBudget!;
+        monthsOfData = -1;
+      } else if (hasOverride) {
         forecast = override!;
         monthsOfData = -1;
       } else if (hist && hist.months > 0) {
@@ -744,6 +760,54 @@ router.put('/forecast-overrides/:categoryId', async (req: Request, res: Response
     });
 
     res.json({ category_id: categoryId, monthly_budget });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/dashboard/monthly-budgets?month=YYYY-MM
+router.get('/monthly-budgets', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const db = getDb();
+    const userId = req.user!.id;
+    const month = (req.query.month as string) || dayjs().format('YYYY-MM');
+    const rows = (await db.execute({
+      sql: `SELECT mcb.category_id, mcb.budget, c.name, c.icon, c.color
+            FROM monthly_category_budgets mcb JOIN categories c ON mcb.category_id = c.id
+            WHERE mcb.user_id = ? AND mcb.month = ?`,
+      args: [userId, month],
+    })).rows;
+    res.json(rows);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /api/dashboard/monthly-budgets?month=YYYY-MM
+router.put('/monthly-budgets', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const db = getDb();
+    const userId = req.user!.id;
+    const month = (req.query.month as string) || dayjs().format('YYYY-MM');
+    const { budgets } = req.body as { budgets: { category_id: number; budget: number | null }[] };
+
+    for (const b of budgets) {
+      if (b.budget === null || b.budget === undefined) {
+        await db.execute({
+          sql: 'DELETE FROM monthly_category_budgets WHERE user_id = ? AND month = ? AND category_id = ?',
+          args: [userId, month, b.category_id],
+        });
+      } else {
+        await db.execute({
+          sql: `INSERT INTO monthly_category_budgets (user_id, month, category_id, budget)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(user_id, month, category_id) DO UPDATE SET budget = ?`,
+          args: [userId, month, b.category_id, b.budget, b.budget],
+        });
+      }
+    }
+
+    res.json({ ok: true });
   } catch (err) {
     next(err);
   }

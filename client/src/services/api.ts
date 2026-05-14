@@ -277,6 +277,16 @@ export async function setForecastOverride(categoryId: number, monthlyBudget: num
   return data;
 }
 
+export async function getMonthlyBudgets(month: string): Promise<any[]> {
+  const { data } = await api.get('/dashboard/monthly-budgets', { params: { month } });
+  return data;
+}
+
+export async function saveMonthlyBudgets(month: string, budgets: { category_id: number; budget: number | null }[]): Promise<any> {
+  const { data } = await api.put('/dashboard/monthly-budgets', { budgets }, { params: { month } });
+  return data;
+}
+
 // --- Admin ---
 export interface AdminUser {
   id: number;
